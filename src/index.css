@@ -1,0 +1,288 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 25% 10%;
+    --foreground: 0 0% 95%;
+
+    --card: 240 25% 14%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 240 25% 14%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 258 80% 74%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 15% 20%;
+    --secondary-foreground: 0 0% 95%;
+
+    --muted: 240 15% 20%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 190 60% 52%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 95%;
+
+    --border: 240 15% 20%;
+    --input: 240 15% 20%;
+    --ring: 258 80% 74%;
+
+    --sidebar-background: 240 25% 10%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 258 80% 74%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 15% 20%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 240 15% 20%;
+    --sidebar-ring: 258 80% 74%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border selection:bg-white/10 selection:text-white;
+  }
+  
+  body {
+    @apply bg-background text-foreground antialiased overflow-hidden;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
+    cursor: none; /* Hide the default cursor for our custom cursor */
+  }
+}
+
+@layer utilities {
+  .workspace-active {
+    @apply bg-vibe-purple text-white rounded-md;
+  }
+  
+  .glass-card {
+    @apply backdrop-blur-xl bg-black/40 border border-white/10 shadow-[0_8px_16px_-4px_rgba(0,0,0,0.3)] rounded-xl;
+  }
+
+  .frosted-panel {
+    @apply backdrop-blur-md bg-white/5 border border-white/10 shadow-lg rounded-xl;
+  }
+
+  .voice-circle {
+    @apply rounded-full bg-vibe-purple/50 animate-pulse-circle;
+  }
+  
+  .neo-blur {
+    @apply backdrop-blur-2xl bg-black/40 border border-white/10;
+  }
+  
+  .chat-bubble {
+    @apply p-4 rounded-2xl max-w-[85%];
+  }
+  
+  .chat-bubble-user {
+    @apply bg-vibe-purple text-white ml-auto;
+  }
+  
+  .chat-bubble-ai {
+    @apply bg-gray-800 dark:bg-gray-800 mr-auto;
+  }
+  
+  .text-gradient {
+    @apply bg-gradient-to-br from-white via-white/90 to-white/70 bg-clip-text text-transparent;
+  }
+  
+  .animate-pulse-circle {
+    animation: pulse-circle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  /* 3D button effect */
+  .btn-3d {
+    @apply relative transition-all duration-200 transform hover:-translate-y-1 active:translate-y-0;
+  }
+
+  .btn-3d::before {
+    content: '';
+    @apply absolute inset-0 bg-black/20 rounded-xl blur-md -z-10 transition-all duration-200;
+  }
+
+  .btn-3d:hover::before {
+    @apply blur-xl bg-black/30;
+  }
+
+  /* Hover effects */
+  .hover-scale {
+    @apply transition-transform duration-300 hover:scale-110;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300;
+  }
+
+  .hover-glow:hover {
+    @apply shadow-[0_0_10px_2px_rgba(155,135,245,0.4)];
+  }
+
+  @keyframes pulse-circle {
+    0% { transform: scale(0.98); opacity: 0.8; }
+    50% { transform: scale(1.02); opacity: 0.5; }
+    100% { transform: scale(0.98); opacity: 0.8; }
+  }
+  
+  @keyframes waveform-animation {
+    0% { height: 10%; }
+    50% { height: var(--wave-height); }
+    100% { height: 10%; }
+  }
+
+  @keyframes float {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0); }
+  }
+  
+  .animate-waveform {
+    animation: waveform-animation 0.5s ease-in-out infinite;
+  }
+
+  /* Markdown Content Styling */
+  .markdown-content {
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.6;
+  }
+
+  .markdown-content h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    color: white;
+  }
+
+  .markdown-content h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 1.25rem;
+    margin-bottom: 0.75rem;
+    color: white;
+  }
+
+  .markdown-content h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    color: white;
+  }
+
+  .markdown-content h4, .markdown-content h5, .markdown-content h6 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 0.75rem;
+    margin-bottom: 0.5rem;
+    color: white;
+  }
+
+  .markdown-content p {
+    margin-bottom: 1rem;
+  }
+
+  .markdown-content ul, .markdown-content ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .markdown-content ul {
+    list-style-type: disc;
+  }
+
+  .markdown-content ol {
+    list-style-type: decimal;
+  }
+
+  .markdown-content li {
+    margin-bottom: 0.25rem;
+  }
+
+  .markdown-content code {
+    font-family: monospace;
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.25rem;
+    font-size: 0.9em;
+  }
+
+  .markdown-content pre {
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .markdown-content pre code {
+    background-color: transparent;
+    padding: 0;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .markdown-content blockquote {
+    border-left: 4px solid rgba(138, 43, 226, 0.6);
+    padding-left: 1rem;
+    margin-left: 0;
+    margin-right: 0;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .markdown-content a {
+    color: #a78bfa;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .markdown-content a:hover {
+    color: #c4b5fd;
+  }
+
+  .markdown-content img {
+    max-width: 100%;
+    border-radius: 0.5rem;
+    margin: 1rem 0;
+  }
+
+  .markdown-content hr {
+    border: 0;
+    height: 1px;
+    background-color: rgba(255, 255, 255, 0.2);
+    margin: 1.5rem 0;
+  }
+
+  .markdown-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+  }
+
+  .markdown-content th, .markdown-content td {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 0.5rem;
+    text-align: left;
+  }
+
+  .markdown-content th {
+    background-color: rgba(255, 255, 255, 0.1);
+    font-weight: 600;
+  }
+
+  .markdown-content tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+}
