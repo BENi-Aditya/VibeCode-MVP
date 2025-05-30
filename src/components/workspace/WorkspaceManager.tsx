@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { WorkspaceSidebar, WorkspaceType } from './WorkspaceSidebar';
-import { IdeationWorkspace } from './IdeationWorkspace';
+import { IdeationWorkspace } from './Ideation/IdeationWorkspace';
 import { EnvironmentWorkspace } from './EnvironmentWorkspace';
 import { CodingWorkspace } from './CodingWorkspace';
 import { TestingWorkspace } from './TestingWorkspace';

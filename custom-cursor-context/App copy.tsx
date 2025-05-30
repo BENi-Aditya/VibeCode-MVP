@@ -9,6 +9,7 @@ import { WaitlistProvider } from './components/WaitlistContext';
 import { useEffect } from "react";
 import './styles/blueprint.css';
 
+
 const queryClient = new QueryClient();
 
 function App() {
