@@ -1,16 +1,35 @@
 # VibeCode Project Changelog
 
 ## Project Overview
+
+## Core Concept
+"You describe your idea, the AI builds the plan, suggests the tech stack, sets up the environment, and even starts coding for you."
+
+Users chat with an AI assistant inside a dual-pane workspace:
+
+Left Pane (Chat Interface) — Conversational interface where users describe their project idea naturally.
+
+Right Pane (Technical Blueprint Panel) — A structured, dynamic panel where the AI progressively builds a detailed technical blueprint of the user's project.
 **VibeCode** is an innovative AI-powered development assistant designed to streamline the software development process through intelligent ideation, environment setup, and collaborative coding.
 
 ## Technology Stack
-- **Frontend**: React with TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: Shadcn/ui, Radix UI
-- **AI Integration**: OpenAI GPT-4
-- **Backend**: FastAPI (planned)
+- **Frontend**: React + Vite + TailwindCSS
+- **UI Components**: ShadCN UI + custom glassmorphism
+- **AI Integration**: OpenAI API (GPT-4.1 nano / 3.5)
+- **Backend**: Node.js / FastAPI (TBD)
+- **Deployment**: Render.com
+- **Auth (future)**: Supabase or Clerk (optional)
 
 ## Project Milestones
+
+## Project Status (as of May 2025)
+✅ Chat Interface Working
+✅ Idea Refinement Canvas UI implemented
+✅ Backend prompt logic drafted
+🟡 Blueprint Generation API in development
+🟡 AI prompt fine-tuning in progress
+🟡 Canvas interaction patterns in development
+🟥 Collaboration & deployment features (future)
 
 ### Initial Concept (MVP Development)
 - **Core Focus**: Ideation and Development workspaces
@@ -61,7 +80,7 @@
 - OpenAI API integration
 - Error handling for API responses
 - Fallback mechanisms for API failures
-- Model selection (GPT-3.5, GPT-4)
+- Model selection (GPT-3.5, GPT-4.1 nano)
 
 #### User Experience
 - Custom cursor implementation
@@ -83,11 +102,11 @@
 - Radix UI for accessible components
 
 ### Future Roadmap
-- Implement FastAPI backend
-- Expand AI model support
-- Add more workspace functionalities
-- Enhance voice interaction capabilities
-- Implement advanced project generation features
+- Complete Blueprint Generation API development
+- Finalize AI prompt fine-tuning
+- Implement blueprint display integration
+- Add collaboration features
+- Develop deployment capabilities
 
 ## Deployment Considerations
 - Netlify/Vercel deployment ready
