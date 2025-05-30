@@ -6,7 +6,7 @@
 <br>
 
 <p align="center">
-  <strong>Official Website:</strong> <a href="https://vibecode.org.in">vibecode-website.onrender.com</a>
+  <strong>Official Website:</strong> <a href="https://vibecode.org.in">vibecode.org.in</a>
 </p>
 
 <br><br>
