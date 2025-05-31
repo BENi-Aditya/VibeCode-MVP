@@ -50,7 +50,7 @@ app.post('/api/generate-canvas', async (req, res) => {
     
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
-    
+
     res.json({ 
       success: true, 
       message: 'Canvas generated successfully',
