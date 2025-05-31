@@ -7,8 +7,8 @@ import { Mic, MicOff, X, Send, Loader, Info, ChevronDown, Trash2, Edit, Download
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 // Import custom instructions as raw text
-import customInstructions from '/Users/tripathd/Downloads/Manual Library/Projects/VibeCode/Custom_Prompts/Custom_instructions.txt?raw';
-import canvasPromptContent from '/Users/tripathd/Downloads/Manual Library/Projects/VibeCode/Custom_Prompts/canvas_prompt.txt?raw';
+import customInstructions from '/prompts/Custom_instructions.txt?raw';
+import canvasPromptContent from '/prompts/canvas_prompt.txt?raw';
 import {
   DropdownMenu,
   DropdownMenuContent,
