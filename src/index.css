@@ -285,4 +285,119 @@
   .markdown-content tr:nth-child(even) {
     background-color: rgba(255, 255, 255, 0.05);
   }
+
+  .prism-highlight {
+    font-family: 'JetBrains Mono', 'Fira Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+    font-size: 1rem;
+    background: transparent !important;
+    color: #e0e0e0;
+    /* Make sure Prism tokens are visible over dark background */
+  }
+  /* Optional: Custom VibeCode color tweaks for Prism tokens */
+  .token.keyword { color: #b388ff; font-weight: bold; }
+  .token.string { color: #80cbc4; }
+  .token.number { color: #f78c6c; }
+  .token.comment { color: #616161; font-style: italic; }
+  .token.function { color: #82aaff; }
+  .token.class-name { color: #ffcb6b; }
+  .token.operator { color: #c792ea; }
+  .token.boolean { color: #ff5370; }
+  .token.builtin { color: #c3e88d; }
+  .token.punctuation { color: #89ddff; }
+  /* ... you can add more for clarity ... */
+}
+
+/* Minimal, beautiful scrollbar for dark themes (applies globally) */
+::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #a78bfa 0%, #6366f1 100%);
+  border-radius: 8px;
+  min-height: 40px;
+  opacity: 0.7;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #c4b5fd 0%, #818cf8 100%);
+  opacity: 1;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #a78bfa #181825;
+}
+
+/* Chat input: auto-expanding, dark, rounded, multi-line */
+.chat-input {
+  background: #181825;
+  color: #fff;
+  border-radius: 1rem;
+  border: 1px solid #3a3a4d;
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
+  font-family: inherit;
+  min-height: 44px;
+  max-height: 180px;
+  resize: none;
+  overflow-y: auto;
+  transition: border 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px 0 rgba(80,60,180,0.08);
+}
+.chat-input:focus {
+  outline: none;
+  border: 1.5px solid #a78bfa;
+  box-shadow: 0 0 0 2px #a78bfa33;
+}
+
+/* Stronger specificity for chat panel custom scrollbar (Chrome/Safari/Edge) */
+.chat-panel::-webkit-scrollbar {
+  width: 7px !important;
+  background: transparent !important;
+}
+.chat-panel::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #a78bfa 0%, #6366f1 100%) !important;
+  border-radius: 8px !important;
+  opacity: 0.6 !important;
+  transition: opacity 0.2s, background 0.2s !important;
+}
+.chat-panel::-webkit-scrollbar-thumb:hover {
+  opacity: 0.9 !important;
+  background: linear-gradient(135deg, #c4b5fd 0%, #818cf8 100%) !important;
+}
+.chat-panel::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+/* Firefox support for chat panel scrollbar */
+.chat-panel {
+  scrollbar-width: thin !important;
+  scrollbar-color: #a78bfa #181825 !important;
+}
+
+/* Hide scrollbar for chat input except on hover */
+.chat-input::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+.chat-input:hover::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-input::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 8px;
+  opacity: 0.3;
+}
+.chat-input:hover::-webkit-scrollbar-thumb {
+  opacity: 0.7;
+}
+.chat-input::-webkit-scrollbar-track {
+  background: transparent;
 }
