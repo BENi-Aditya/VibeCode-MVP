@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import MonacoEditor from '@monaco-editor/react';
+import { codingWorkspaceInstructions } from '../../lib/customInstructions';
 
 // --- Terminal Output ---
 function Terminal({ output, isRunning, onClear, height }: { output: string[]; isRunning: boolean; onClear: () => void; height: number }) {
@@ -92,7 +93,7 @@ function AIAssistantPanel() {
         body: JSON.stringify({
           model: 'gpt-4.1-nano',
           messages: [
-            { role: 'system', content: 'You are a helpful AI coding assistant for the VibeCode IDE.' },
+            { role: 'system', content: codingWorkspaceInstructions },
             ...messages.map(msg => ({ role: msg.sender === 'user' ? 'user' : 'assistant', content: msg.content })),
             { role: 'user', content: userMessage.content }
           ],
@@ -301,7 +302,7 @@ export function CodingWorkspace() {
               tabSize: 4,
               insertSpaces: true,
               cursorBlinking: 'smooth',
-              cursorSmoothCaretAnimation: true,
+              cursorSmoothCaretAnimation: 'on'
             }}
             onChange={v => setCode(v || '')}
           />
