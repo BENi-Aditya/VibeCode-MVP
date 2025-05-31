@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import MonacoEditor from '@monaco-editor/react';
 import { codingWorkspaceInstructions } from '../../lib/customInstructions';
+import ReactMarkdown from 'react-markdown';
 
 // --- Terminal Output ---
 function Terminal({ output, isRunning, onClear, height }: { output: string[]; isRunning: boolean; onClear: () => void; height: number }) {
@@ -54,7 +55,7 @@ function DragBar({ onDrag }: { onDrag: (deltaY: number) => void }) {
 
 // --- AI Chat Panel ---
 interface Message { sender: 'user' | 'ai'; content: string; timestamp: Date; }
-function AIAssistantPanel() {
+function AIAssistantPanel({ setCode }: { setCode: (code: string) => void }) {
   const [messages, setMessages] = useState<Message[]>([
     { sender: 'ai', content: "Hi! I'm your AI coding assistant. Ask me for code, refactoring, or help!", timestamp: new Date() }
   ]);
@@ -119,6 +120,25 @@ function AIAssistantPanel() {
     // Otherwise, allow Shift+Enter for new lines
   };
 
+  // Utility to extract triple-quote code blocks from a string
+  function extractTripleQuoteBlocks(text: string) {
+    const regex = /"""([\w./-]+)"""\s*([\s\S]*?)\s*"""/g;
+    let match;
+    const blocks = [];
+    let lastIndex = 0;
+    while ((match = regex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        blocks.push({ type: 'text', content: text.slice(lastIndex, match.index) });
+      }
+      blocks.push({ type: 'code', filename: match[1], code: match[2] });
+      lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < text.length) {
+      blocks.push({ type: 'text', content: text.slice(lastIndex) });
+    }
+    return blocks;
+  }
+
   return (
     <div className="w-[32%] max-w-[420px] h-full bg-black/20 backdrop-blur-lg border border-white/10 flex-shrink-0 rounded-2xl shadow-2xl flex flex-col">
       <div className="h-full rounded-2xl overflow-hidden border-white/20 bg-white/5 backdrop-blur-lg shadow-xl flex flex-col" data-glass>
@@ -129,15 +149,57 @@ function AIAssistantPanel() {
           </div>
           <div className="flex-1 overflow-y-auto p-1 rounded-xl bg-black/20 border border-white/10 scrollbar-thin backdrop-blur-sm chat-panel">
             {messages.map((msg, i) => (
-              <div key={i} className={`flex max-w-[80%] glass-card animate-fade-in-up transition-all duration-300 p-4 rounded-xl mb-2 ${msg.sender === 'user' ? 'ml-auto bg-vibe-purple/10 border-vibe-purple/20' : 'mr-auto bg-white/5 border-white/10'}`}>
-                <div className="flex-1">
+              <div key={i} className={`vibe-ai-message flex max-w-[80%] glass-card animate-fade-in-up transition-all duration-300 p-4 rounded-xl mb-2 ${msg.sender === 'user' ? 'ml-auto bg-vibe-purple/10 border-vibe-purple/20' : 'mr-auto bg-white/5 border-white/10'}`}
+                style={{minWidth: 0}}>
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center mb-1">
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 ${msg.sender === 'user' ? 'bg-gradient-to-br from-vibe-purple to-vibe-blue' : 'bg-gradient-to-br from-blue-500 to-cyan-500'}`}>
                       <span className="text-white text-xs font-bold">{msg.sender === 'user' ? 'U' : 'AI'}</span>
                     </div>
                     <p className="text-xs text-white/60">{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
-                  <div className="text-white/90 text-sm whitespace-pre-line">{msg.content}</div>
+                  <div className="text-white/90 text-sm min-w-0">
+                    {extractTripleQuoteBlocks(msg.content).map((block, idx) => {
+                      if (block.type === 'code') {
+                        // Guess language from filename extension
+                        const ext = block.filename.split('.').pop() || '';
+                        const lang = ext === 'py' ? 'python' : ext === 'js' ? 'javascript' : ext;
+                        return (
+                          <div className="relative vibe-codeblock" key={idx}>
+                            <div className="vibe-codeblock-header flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/15 rounded-t-[0.7rem]">
+                              <span className="text-xs font-mono text-white/70">{block.filename}</span>
+                              <div className="flex gap-2">
+                                <button
+                                  className="vibe-codeblock-copy"
+                                  onClick={() => {navigator.clipboard.writeText(block.code)}}
+                                  title="Copy"
+                                  style={{zIndex: 10}}
+                                >
+                                  Copy
+                                </button>
+                                <button
+                                  className="vibe-codeblock-copy"
+                                  onClick={() => setCode(block.code)}
+                                  title="Apply"
+                                  style={{zIndex: 10}}
+                                >
+                                  Apply
+                                </button>
+                              </div>
+                            </div>
+                            <div className="vibe-codeblock-body" style={{maxHeight: '340px', overflow: 'auto', borderRadius: '0 0 0.7rem 0.7rem'}}>
+                              <pre className={`vibe-codeblock-pre vibe-codeblock-wrap`} tabIndex={0}>
+                                <code className={`language-${lang}`}>{block.code}</code>
+                              </pre>
+                            </div>
+                          </div>
+                        );
+                      } else {
+                        // Render normal markdown for non-code
+                        return <ReactMarkdown key={idx}>{block.content}</ReactMarkdown>;
+                      }
+                    })}
+                  </div>
                 </div>
               </div>
             ))}
@@ -313,7 +375,7 @@ export function CodingWorkspace() {
         <Terminal output={terminalOutput} isRunning={isRunning} onClear={() => setTerminalOutput([])} height={terminalHeight} />
       </div>
       {/* AI Chat Panel */}
-      <AIAssistantPanel />
+      <AIAssistantPanel setCode={setCode} />
     </div>
   );
 }

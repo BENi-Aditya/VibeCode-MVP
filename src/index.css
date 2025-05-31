@@ -401,3 +401,124 @@
 .chat-input::-webkit-scrollbar-track {
   background: transparent;
 }
+
+.custom-canvas-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  background: transparent;
+}
+.custom-canvas-scroll::-webkit-scrollbar-thumb {
+  background: #7E69AB;
+  border-radius: 6px;
+}
+.custom-canvas-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-canvas-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #7E69AB transparent;
+}
+
+.custom-canvas-cursor {
+  cursor: url('/logo.png') 8 8, pointer;
+}
+
+/* Custom thin purple scrollbar for code blocks in the canvas */
+.custom-canvas-scroll pre,
+.custom-canvas-scroll pre code {
+  scrollbar-width: thin;
+  scrollbar-color: #7E69AB transparent;
+}
+.custom-canvas-scroll pre::-webkit-scrollbar,
+.custom-canvas-scroll pre code::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+  background: transparent;
+}
+.custom-canvas-scroll pre::-webkit-scrollbar-thumb,
+.custom-canvas-scroll pre code::-webkit-scrollbar-thumb {
+  background: #7E69AB;
+  border-radius: 6px;
+}
+.custom-canvas-scroll pre::-webkit-scrollbar-track,
+.custom-canvas-scroll pre code::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* --- VibeCode Custom Code Block Styles --- */
+.vibe-codeblock {
+  position: relative;
+  margin: 1rem 0;
+  background: rgba(255,255,255,0.08);
+  border-radius: 0.7rem;
+  border: 1px solid rgba(138,43,226,0.13);
+  box-shadow: 0 2px 8px 0 rgba(80,60,180,0.07);
+  overflow: hidden;
+  padding: 0;
+  max-width: 100%;
+}
+.vibe-codeblock-header {
+  background: rgba(30, 20, 60, 0.13);
+  border-radius: 0.7rem 0.7rem 0 0;
+  border-bottom: 1px solid rgba(138,43,226,0.10);
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  z-index: 2;
+}
+.vibe-codeblock-body {
+  background: transparent;
+  border-radius: 0 0 0.7rem 0.7rem;
+  max-height: 340px;
+  overflow: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+.vibe-codeblock-pre {
+  background: transparent;
+  margin: 0;
+  padding: 1.1rem 1.5rem 1.1rem 1.1rem;
+  border-radius: 0 0 0.7rem 0.7rem;
+  font-family: 'JetBrains Mono', 'Fira Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+  font-size: 0.98rem;
+  color: #f3f3fa;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.vibe-codeblock-wrap {
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-x: auto;
+}
+.vibe-codeblock-nowrap {
+  white-space: pre;
+  word-break: normal;
+  overflow-x: auto;
+}
+.vibe-codeblock-copy {
+  position: relative;
+  background: linear-gradient(135deg, #a78bfa 0%, #6366f1 100%);
+  color: #fff;
+  border: none;
+  border-radius: 0.35rem;
+  padding: 0.18rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px 0 rgba(80,60,180,0.10);
+  cursor: pointer;
+  opacity: 1;
+  z-index: 10;
+  transition: background 0.2s, color 0.2s, opacity 0.2s;
+  margin-left: 0.18rem;
+  height: 1.7rem;
+  min-width: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.vibe-codeblock-copy:hover {
+  background: linear-gradient(135deg, #c4b5fd 0%, #818cf8 100%);
+  color: #fff;
+  opacity: 1;
+}

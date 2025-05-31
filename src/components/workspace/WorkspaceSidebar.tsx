@@ -90,7 +90,7 @@ export function WorkspaceSidebar({ activeWorkspace, onWorkspaceChange }: Workspa
             className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-vibe-purple to-vibe-blue flex items-center justify-center shadow-lg transform hover:scale-110 transition-all duration-300"
             data-interactive
           >
-            <img src="/Logo/logo.png" alt="VibeCode Logo" className="w-full h-full object-cover" />
+            <img src="logo.png" alt="VibeCode Logo" className="w-full h-full object-cover" />
           </div>
         </div>
         
@@ -121,7 +121,7 @@ export function WorkspaceSidebar({ activeWorkspace, onWorkspaceChange }: Workspa
                 >
                   <p className="font-medium text-white">{workspace.label}</p>
                   <p className="text-xs text-white/70">{workspace.description}</p>
-                  {workspace.id !== 'ideation' && (
+                  {workspace.id !== 'ideation' && workspace.id !== 'coding' && (
                     <p className="text-xs text-vibe-purple mt-1">Coming soon</p>
                   )}
                 </TooltipContent>

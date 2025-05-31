@@ -778,12 +778,15 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
           description: 'OpenAI API key is not configured. Cannot generate canvas.',
           variant: 'destructive',
         });
-        const mockResponse = "This is a mock canvas response because the API key is missing. Configure VITE_APP_OPENAI_API_KEY in your .env file. The prompt was: " + canvasPromptContent;
+        const mockResponse = "This is a mock canvas response because the API key is missing. Configure VITE_APP_OPENAI_API_KEY in your .env file.";
         setCanvasContent(mockResponse);
-        console.log('Mock canvas_response.txt content:', mockResponse);
         setIsAiThinking(false);
         return;
       }
+
+      // Fetch the latest prompt text from the file at runtime
+      const promptResponse = await fetch('/prompts/canvas_prompt.txt');
+      const canvasPromptText = await promptResponse.text();
 
       // Prepare messages for the API call, including custom instructions and chat history
       const apiMessages = [
@@ -792,7 +795,7 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
           role: msg.sender === 'user' ? 'user' : 'assistant',
           content: msg.content
         })),
-        { role: 'user', content: canvasPromptContent } // Add the canvas prompt itself
+        { role: 'user', content: canvasPromptText } // Use the latest prompt text
       ];
 
       // Send canvas_prompt.txt content along with history and custom instructions to OpenAI API
@@ -827,17 +830,8 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
         setCanvasContent(aiCanvasResponse);
       } else {
         console.error('Unexpected API response structure for canvas:', data);
-        // This error will be caught by the outer catch block and displayed in the canvas
         throw new Error('Received unexpected data structure from API for canvas content.');
       }
-
-      // Display in the Idea Refinement Canvas panel
-      // setCanvasContent(aiCanvasResponse); // Moved inside the if block
-
-      // Simulate saving to canvas_response.txt (in a real app, this would be a backend call or fs operation if in Node.js)
-      console.log('Simulated save to canvas_response.txt with content:', aiCanvasResponse);
-      // In a browser environment, you can't directly write to files without user interaction or a server.
-      // For now, we'll just log it and display it.
 
       toast({
         title: 'Canvas Generated',
@@ -867,15 +861,63 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
     }
   };
 
+  // New state for voice mode popup
+  const [showVoicePopup, setShowVoicePopup] = useState(true);
+
   return (
     <div className="flex h-full w-full bg-gradient-to-br from-[#0c0915] via-[#121125] to-[#1b1a2e]">
+      {/* Voice Mode Popup */}
+      {showVoicePopup && (
+        <div className="absolute left-1/2 bottom-32 -translate-x-1/2 z-[100001] animate-in slide-in-from-bottom duration-300 pointer-events-auto">
+          <div className="glass-card p-4 rounded-xl border border-white/20 shadow-lg backdrop-blur-md max-w-sm">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-vibe-purple/20 to-vibe-blue/20">
+                <Mic className="h-5 w-5 text-vibe-purple" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-white mb-1">Try Voice Mode!</h3>
+                <p className="text-xs text-white/70 mb-3">Experience hands-free interaction with our new voice-enabled AI assistant.</p>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="text-xs rounded-full bg-gradient-to-r from-vibe-purple to-vibe-blue text-white hover:from-vibe-purple/90 hover:to-vibe-blue/90"
+                    onClick={() => {
+                      setShowVoicePopup(false);
+                      toggleVoiceMode();
+                    }}
+                  >
+                    Try Now
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs rounded-full text-white/70 hover:text-white hover:bg-white/10"
+                    onClick={() => setShowVoicePopup(false)}
+                  >
+                    Maybe Later
+                  </Button>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 rounded-full hover:bg-white/10"
+                onClick={() => setShowVoicePopup(false)}
+              >
+                <X className="h-3 w-3 text-white/60" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Left panel with chat and voice interface */}
       <div className="w-[65%] h-full flex flex-col p-5 relative">
         {/* Header with title and model selector */}
         <div className="flex justify-between items-center mb-5 px-4">
           <div className="flex items-center">
             <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-vibe-purple to-vibe-blue flex items-center justify-center shadow-lg mr-3">
-              <img src="/Logo/logo.png" alt="VibeCode Logo" className="w-full h-full object-cover" />
+              <img src="logo.png" alt="VibeCode Logo" className="w-full h-full object-cover" />
             </div>
             <h1 className="text-xl font-bold text-white">VibeCode Ideation Station</h1>
           </div>
@@ -1231,7 +1273,7 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
               </div>
             
             {/* Content area for the canvas response */}
-            <div className="flex-grow overflow-y-auto p-1 rounded-xl bg-black/20 border border-white/10 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent backdrop-blur-sm">
+            <div className="flex-grow overflow-y-auto p-1 rounded-xl bg-black/20 border border-white/10 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent backdrop-blur-sm custom-canvas-scroll custom-canvas-cursor">
               {isAiThinking && !canvasContent && (
                 <div className="flex items-center justify-center h-full">
                   <Loader className="h-8 w-8 animate-spin text-vibe-purple" />
@@ -1249,10 +1291,31 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
                       ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 pl-4" {...props} />,
                       ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 pl-4" {...props} />,
                       li: ({node, ...props}) => <li className="mb-1" {...props} />,
-                      code: ({node, inline, className, children, ...props}) => {
+                      code: ({node, inline, className, children, ...props}: {node: any, inline?: boolean, className?: string, children: React.ReactNode}) => {
                         const match = /language-(\w+)/.exec(className || '');
+                        const [isCopied, setIsCopied] = React.useState(false);
+                        const codeRef = React.useRef<HTMLPreElement>(null);
+                        const handleCopy = () => {
+                          if (codeRef.current) {
+                            navigator.clipboard.writeText(codeRef.current.innerText);
+                            setIsCopied(true);
+                            setTimeout(() => setIsCopied(false), 1200);
+                          }
+                        };
                         return !inline && match ? (
-                          <pre className="bg-black/40 p-2 rounded-md my-2 overflow-x-auto text-sm"><code>{String(children).replace(/\n$/, '')}</code></pre>
+                          <div className="relative group">
+                            <pre ref={codeRef} className="bg-black/40 p-2 rounded-md my-2 overflow-x-auto text-sm custom-canvas-scroll custom-canvas-cursor">
+                              <code>{String(children).replace(/\n$/, '')}</code>
+                            </pre>
+                            <button
+                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-vibe-purple/80 hover:bg-vibe-blue/80 text-white rounded-full px-2 py-1 text-xs shadow focus:outline-none"
+                              onClick={handleCopy}
+                              title={isCopied ? 'Copied!' : 'Copy'}
+                              style={{zIndex: 10}}
+                            >
+                              {isCopied ? '✓' : 'Copy'}
+                            </button>
+                          </div>
                         ) : (
                           <code className="bg-black/40 px-1 py-0.5 rounded-sm text-vibe-pink text-xs" {...props}>
                             {children}
