@@ -1,5 +1,4 @@
 import express from 'express';
-import fs from 'fs';
 import path from 'path';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -22,13 +21,6 @@ app.use(express.static(path.join(__dirname, 'dist')));
 // API endpoint to generate canvas
 app.post('/api/generate-canvas', async (req, res) => {
   try {
-    // Read the prompt file
-    const promptFilePath = path.join(__dirname, 'Custom_Prompts', 'canvas_prompt_real.txt');
-    const responseFilePath = path.join(__dirname, 'Custom_Prompts', 'canvas_response.txt');
-    
-    // Read the prompt file content
-    const promptText = fs.readFileSync(promptFilePath, 'utf8');
-    
     // Get API key from environment variables
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -45,7 +37,7 @@ app.post('/api/generate-canvas', async (req, res) => {
       body: JSON.stringify({
         model: 'gpt-4.1-nano',
         messages: [
-          { role: 'user', content: promptText }
+          { role: 'user', content: req.body.prompt || 'Generate a canvas' }
         ],
         temperature: 0.7
       })
@@ -58,21 +50,19 @@ app.post('/api/generate-canvas', async (req, res) => {
     
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
-
-    console.log('--- DEBUG: Attempting to write to file ---');
-    console.log('File path:', responseFilePath);
-    console.log('AI Response content length:', aiResponse ? aiResponse.length : 'undefined/null');
-    console.log('AI Response (first 500 chars):', aiResponse ? aiResponse.substring(0, 500) : 'undefined/null');
     
-    // Write the response to the response file
-    fs.writeFileSync(responseFilePath, aiResponse);
-    console.log('--- DEBUG: File write operation completed. Check file content now. ---');
-    
-    res.json({ success: true, message: 'Canvas generated successfully' });
+    res.json({ 
+      success: true, 
+      message: 'Canvas generated successfully',
+      data: aiResponse 
+    });
     
   } catch (error) {
     console.error('Error generating canvas:', error);
-    res.status(500).json({ error: error.message || 'An unknown error occurred' });
+    res.status(500).json({ 
+      error: error.message || 'An unknown error occurred',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
