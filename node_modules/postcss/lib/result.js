@@ -12,7 +12,7 @@ class Result {
     this.messages = []
     this.root = root
     this.opts = opts
-    this.css = ''
+    this.css = undefined
     this.map = undefined
   }
 

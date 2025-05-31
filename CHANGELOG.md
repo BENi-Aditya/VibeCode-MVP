@@ -1,5 +1,12 @@
 # VibeCode Project Changelog
 
+## [Unreleased]
+- Added enhanced voice interaction panel with full-screen overlay
+- Implemented continuous conversation loop with automatic speech detection
+- Added real-time audio visualization using Web Audio API
+- Improved voice circle UI with centered positioning and symmetric outlines
+- Fixed syntax errors in voice mode implementation
+
 ## Project Overview
 
 ## Core Concept

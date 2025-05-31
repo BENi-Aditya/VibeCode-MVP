@@ -70,7 +70,7 @@ export function WorkspaceSidebar({ activeWorkspace, onWorkspaceChange }: Workspa
   ];
 
   const handleWorkspaceClick = (workspace: WorkspaceButton) => {
-    if (workspace.id === 'ideation') {
+    if (workspace.id === 'ideation' || workspace.id === 'coding') {
       onWorkspaceChange(workspace.id);
       setShowConstruction(false);
     } else {

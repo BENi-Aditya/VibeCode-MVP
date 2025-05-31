@@ -3,7 +3,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Mic, MicOff, X, Send, Loader, Info, ChevronDown, Trash2, Edit } from 'lucide-react';
+import { Mic, MicOff, X, Send, Loader, Info, ChevronDown, Trash2, Edit, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 // Import custom instructions as raw text
@@ -54,6 +54,13 @@ export function IdeationWorkspace() {
   const [transcription, setTranscription] = useState('');
   const [canvasContent, setCanvasContent] = useState('');
   
+  // New voice mode states
+  const [voiceStatus, setVoiceStatus] = useState<'listening' | 'processing' | 'speaking' | 'idle'>('idle');
+  const [currentTranscript, setCurrentTranscript] = useState('');
+  const [aiResponse, setAiResponse] = useState('');
+  const [voiceVolume, setVoiceVolume] = useState(0);
+  const [continuousMode, setContinuousMode] = useState(false);
+  
   // Available models
   const [models] = useState<ModelOption[]>([
     { id: 'gpt-4.1-nano', name: 'GPT-4.1 nano', available: true },
@@ -67,9 +74,14 @@ export function IdeationWorkspace() {
   const waveformRef = useRef<HTMLDivElement>(null);
   const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
   const recognitionRef = useRef<any>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const microphoneRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   
-  // Waveform visualization data
-  const [waveformData, setWaveformData] = useState<number[]>(Array(30).fill(0).map(() => Math.random() * 0.5 + 0.1));
+  // Enhanced waveform visualization data
+  const [waveformData, setWaveformData] = useState<number[]>(Array(50).fill(0));
+  const [circleScale, setCircleScale] = useState(1);
 
   // Scroll to bottom of chat when messages update
   useEffect(() => {
@@ -94,23 +106,75 @@ export function IdeationWorkspace() {
     };
   }, []);
   
-  // Handle waveform animation
-  useEffect(() => {
-    // Simulate waveform animation with smoother transitions
-    if (isRecording || isAiSpeaking) {
-      const interval = setInterval(() => {
-        setWaveformData(prev => 
-          prev.map(value => {
-            // Create smoother transitions by limiting the change amount
-            const change = Math.random() * 0.3 - 0.15;
-            const newValue = Math.max(0.1, Math.min(0.9, value + change));
-            return newValue;
-          })
-        );
-      }, 100);
-      return () => clearInterval(interval);
+  // Enhanced voice visualization with real audio analysis
+  const startAudioVisualization = useCallback(async () => {
+    try {
+      // Request microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Create audio context and analyser
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      analyserRef.current = audioContextRef.current.createAnalyser();
+      microphoneRef.current = audioContextRef.current.createMediaStreamSource(stream);
+      
+      // Configure analyser
+      analyserRef.current.fftSize = 256;
+      analyserRef.current.smoothingTimeConstant = 0.8;
+      microphoneRef.current.connect(analyserRef.current);
+      
+      // Start visualization loop
+      const visualize = () => {
+        if (!analyserRef.current) return;
+        
+        const bufferLength = analyserRef.current.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyserRef.current.getByteFrequencyData(dataArray);
+        
+        // Calculate average volume
+        const average = dataArray.reduce((sum, value) => sum + value, 0) / bufferLength;
+        const normalizedVolume = average / 255;
+        
+        // Update volume for circle scaling
+        setVoiceVolume(normalizedVolume);
+        setCircleScale(1 + normalizedVolume * 0.5);
+        
+        // Update waveform data
+        const newWaveformData = Array.from({ length: 50 }, (_, i) => {
+          const index = Math.floor((i / 50) * bufferLength);
+          return (dataArray[index] || 0) / 255;
+        });
+        setWaveformData(newWaveformData);
+        
+        animationFrameRef.current = requestAnimationFrame(visualize);
+      };
+      
+      visualize();
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
     }
-  }, [isRecording, isAiSpeaking]);
+  }, []);
+  
+  const stopAudioVisualization = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    
+    if (microphoneRef.current) {
+      microphoneRef.current.disconnect();
+      microphoneRef.current = null;
+    }
+    
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    
+    analyserRef.current = null;
+    setWaveformData(Array(50).fill(0));
+    setVoiceVolume(0);
+    setCircleScale(1);
+  }, []);
 
   // Text-to-speech function for AI responses
   const speakText = (text: string, onEnd?: () => void) => {
@@ -168,11 +232,11 @@ export function IdeationWorkspace() {
     }
   };
 
-  // Function to start speech recognition
-  const startSpeechRecognition = useCallback(() => {
+  // Enhanced speech recognition with continuous conversation support
+  const startContinuousListening = useCallback(() => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       console.error('Speech recognition not supported');
-      return null;
+      return;
     }
     
     // @ts-ignore - TypeScript doesn't have types for the Web Speech API
@@ -182,88 +246,222 @@ export function IdeationWorkspace() {
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
     
     let silenceTimer: ReturnType<typeof setTimeout> | null = null;
-    let isListening = true;
-    let localTranscription = '';
+    let finalTranscript = '';
     
     recognition.onstart = () => {
-      setIsRecording(true);
-      setTranscription('');
-      setCaptions(['Listening...']);
-      isListening = true;
+      setVoiceStatus('listening');
+      setCurrentTranscript('');
+      startAudioVisualization();
     };
     
     recognition.onresult = (event: any) => {
       let interimTranscript = '';
-      let finalTranscript = '';
+      finalTranscript = '';
       
       for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
+          finalTranscript += transcript;
         } else {
-          interimTranscript += event.results[i][0].transcript;
+          interimTranscript += transcript;
         }
       }
       
-      // Clear the silence timer every time we get a result
+      // Update current transcript display
+      setCurrentTranscript(finalTranscript + interimTranscript);
+      
+      // Clear existing silence timer
       if (silenceTimer) {
         clearTimeout(silenceTimer);
       }
       
-      // Set a new silence timer - if we don't get a result in 2s, consider the speech done
+      // Set new silence timer - stop listening after 3 seconds of silence
       silenceTimer = setTimeout(() => {
-        if (isListening) {
-          recognition.stop();
-        }
-      }, 2000);
-      
-      // Update captions with the interim results
-      setCaptions([interimTranscript || 'Listening...']);
-      
-      // If we have a final transcript, update it
-      if (finalTranscript) {
-        setTranscription(prev => {
-          localTranscription = (prev + ' ' + finalTranscript).trim();
-          return localTranscription;
-        });
-      }
+        recognition.stop();
+      }, 3000);
     };
     
     recognition.onerror = (event: any) => {
-      console.error('Speech recognition error', event.error);
-      setIsRecording(false);
-      setCaptions([]);
-      isListening = false;
+      console.error('Speech recognition error:', event.error);
+      setVoiceStatus('idle');
+      stopAudioVisualization();
+      
+      // Restart listening if in continuous mode and error is not fatal
+      if (continuousMode && event.error !== 'aborted') {
+        setTimeout(() => {
+          startContinuousListening();
+        }, 1000);
+      }
     };
     
     recognition.onend = () => {
-      setIsRecording(false);
-      isListening = false;
+      stopAudioVisualization();
       
-      // Clean up the silence timer
+      // Clean up silence timer
       if (silenceTimer) {
         clearTimeout(silenceTimer);
       }
       
-      // If we have a transcription, send it as a message
-      if (localTranscription.trim()) {
-        setCaptions(['Processing...']);
-        
-        // Send the message
-        const finalTranscription = localTranscription.trim();
-        handleSendMessage(finalTranscription, true); // true = voice mode
+      // Process the final transcript if we have one
+      if (finalTranscript.trim()) {
+        setVoiceStatus('processing');
+        processVoiceInput(finalTranscript.trim());
+      } else if (continuousMode) {
+        // Restart listening if no input was captured but we're in continuous mode
+        setTimeout(() => {
+          startContinuousListening();
+        }, 500);
       } else {
-        setCaptions([]);
+        setVoiceStatus('idle');
       }
     };
     
     recognition.start();
-    
     recognitionRef.current = recognition;
+  }, [continuousMode, startAudioVisualization, stopAudioVisualization]);
+  
+  // Process voice input and get AI response
+  const processVoiceInput = useCallback(async (transcript: string) => {
+    try {
+      // Add user message to chat
+      const userMessage: Message = {
+        sender: 'user',
+        content: transcript,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, userMessage]);
+      
+      // Get AI response
+      const apiKey = import.meta.env.VITE_APP_OPENAI_API_KEY;
+      
+      if (!apiKey) {
+        // Fallback to simulation
+        setTimeout(() => {
+          simulateVoiceResponse(transcript);
+        }, 1000);
+        return;
+      }
+      
+      // Make API call
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: selectedModel.id,
+          messages: [
+            { role: 'system', content: customInstructions },
+            ...messages.map(msg => ({
+              role: msg.sender === 'user' ? 'user' : 'assistant',
+              content: msg.content
+            })),
+            { role: 'user', content: transcript }
+          ],
+          temperature: 0.7
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      const aiResponseText = data.choices[0].message.content;
+      
+      // Add AI message to chat
+      const aiMessage: Message = {
+        sender: 'ai',
+        content: aiResponseText,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, aiMessage]);
+      
+      // Speak the response
+      speakAiResponse(aiResponseText);
+      
+    } catch (error) {
+      console.error('Error processing voice input:', error);
+      simulateVoiceResponse(transcript);
+    }
+  }, [messages, selectedModel.id]);
+  
+  // Simulate AI response for fallback
+  const simulateVoiceResponse = useCallback((userInput: string) => {
+    let response = "I understand you're interested in that. Could you tell me more about what you'd like to build?";
     
-    return recognition;
-  }, [transcription]); // Dependencies
+    if (userInput.toLowerCase().includes('python')) {
+      response = "Python is a great choice! What kind of Python project are you thinking about?";
+    } else if (userInput.toLowerCase().includes('web')) {
+      response = "Web development sounds exciting! Are you thinking of a frontend or full-stack application?";
+    }
+    
+    const aiMessage: Message = {
+      sender: 'ai',
+      content: response,
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, aiMessage]);
+    
+    speakAiResponse(response);
+  }, []);
+  
+  // Enhanced text-to-speech with continuous mode support
+  const speakAiResponse = useCallback((text: string) => {
+    setVoiceStatus('speaking');
+    setAiResponse(text);
+    
+    if (speechSynthesis) {
+      speechSynthesis.cancel();
+    }
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    
+    // Try to use a pleasant voice
+    const voices = speechSynthesis.getVoices();
+    const preferredVoice = voices.find(voice => 
+      voice.name.includes('Samantha') || 
+      voice.name.includes('Google') ||
+      voice.name.includes('female')
+    );
+    
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+    
+    utterance.onstart = () => {
+      // Simulate speaking animation
+      const speakingInterval = setInterval(() => {
+        const randomData = Array.from({ length: 50 }, () => Math.random() * 0.6 + 0.2);
+        setWaveformData(randomData);
+        setCircleScale(1 + Math.random() * 0.3);
+      }, 100);
+      
+      utterance.onend = () => {
+        clearInterval(speakingInterval);
+        setWaveformData(Array(50).fill(0));
+        setCircleScale(1);
+        setVoiceStatus('idle');
+        setAiResponse('');
+        
+        // Continue listening if in continuous mode
+        if (continuousMode && voiceMode) {
+          setTimeout(() => {
+            startContinuousListening();
+          }, 800);
+        }
+      };
+    };
+    
+    speechSynthesis.speak(utterance);
+  }, [continuousMode, voiceMode, startContinuousListening]);
 
   // Send message to OpenAI API
   const handleSendMessage = async (textOrEvent?: string | React.MouseEvent, isVoice?: boolean) => {
@@ -359,7 +557,7 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
           // After AI finishes speaking, auto-start listening again if still in voice mode
           if (voiceMode) {
             setTimeout(() => {
-              startSpeechRecognition();
+              startContinuousListening();
             }, 400);
           }
         });
@@ -434,7 +632,7 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
       speakText(response, () => {
         if (voiceMode) {
           setTimeout(() => {
-            startSpeechRecognition();
+            startContinuousListening();
           }, 400);
         }
       });
@@ -473,32 +671,55 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
     }, 2000);
   };
 
-  const toggleVoiceMode = () => {
+  // Enhanced voice mode toggle with full-screen overlay
+  const toggleVoiceMode = useCallback(() => {
     if (!voiceMode) {
       // Enter voice mode
       setVoiceMode(true);
-      startSpeechRecognition();
+      setContinuousMode(true);
+      setVoiceStatus('idle');
+      setCurrentTranscript('');
+      setAiResponse('');
+      
+      // Start listening immediately
+      setTimeout(() => {
+        startContinuousListening();
+      }, 500);
     } else {
       // Exit voice mode
       setVoiceMode(false);
-      setIsRecording(false);
-      setIsAiSpeaking(false);
-      setCaptions([]);
+      setContinuousMode(false);
+      setVoiceStatus('idle');
+      setCurrentTranscript('');
+      setAiResponse('');
       
-      // Stop any ongoing speech
+      // Stop all voice activities
       if (speechSynthesis) {
         speechSynthesis.cancel();
       }
-      
-      // Stop and clean up speech recognition/mic
+    
       if (recognitionRef.current) {
         recognitionRef.current.onend = null;
         recognitionRef.current.onerror = null;
         recognitionRef.current.stop();
         recognitionRef.current = null;
       }
+      
+      stopAudioVisualization();
     }
-  };
+  }, [voiceMode, startContinuousListening, stopAudioVisualization]);
+  
+  // Handle clicking the voice circle to manually trigger listening
+  const handleVoiceCircleClick = useCallback(() => {
+    if (voiceStatus === 'idle') {
+      startContinuousListening();
+    } else if (voiceStatus === 'listening') {
+      // Stop current recognition to process what was said
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    }
+  }, [voiceStatus, startContinuousListening]);
 
   // Reset chat function
   const resetChat = () => {
@@ -516,6 +737,33 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
   
   // Toast for notifications
   const { toast } = useToast();
+
+  // Function to download canvas content as a .txt file
+  const handleDownloadCanvas = () => {
+    if (!canvasContent || canvasContent.startsWith('⚠️ Error')) {
+      toast({
+        title: 'Cannot Download Canvas',
+        description: 'There is no valid content to download or an error occurred.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const blob = new Blob([canvasContent], { type: 'text/plain;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'VibeCode_Canvas_Response.txt';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+
+    toast({
+      title: 'Canvas Downloaded',
+      description: 'The canvas content has been downloaded as VibeCode_Canvas_Response.txt.',
+      variant: 'default',
+    });
+  };
 
   // Handle Generate Canvas button click
   const handleGenerateCanvas = async () => {
@@ -777,115 +1025,159 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
           <div ref={chatEndRef} />
         </div>
         
-        {/* Voice Mode Overlay */}
+        {/* Enhanced Voice Mode Overlay */}
         {voiceMode && (
-          <div className="absolute inset-0 z-[99990] flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-black/80 backdrop-blur-lg">
             {/* Close Button */}
-            <div className="absolute top-6 right-6">
+            <div className="absolute top-8 right-8">
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={toggleVoiceMode}
-                className="rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300"
+                className="rounded-full bg-white/10 hover:bg-white/20 transition-all duration-300 shadow-lg backdrop-blur-sm border border-white/20"
               >
-                <X className="h-5 w-5" />
+                <X className="h-6 w-6 text-white" />
               </Button>
             </div>
             
-            {/* Voice Circle */}
-            <div 
-              className={cn(
-                "relative w-40 h-40 rounded-full flex items-center justify-center",
-                isRecording 
-                  ? "bg-vibe-purple/20 animate-pulse-slow" 
-                  : isAiThinking
-                    ? "bg-yellow-500/20 animate-pulse-slow"
-                    : isAiSpeaking 
-                      ? "bg-blue-500/20 animate-pulse-slow" 
-                      : "bg-white/10"
-              )}
-            >
-              {/* Border */}
+            {/* Main Voice Interface */}
+            <div className="flex flex-col items-center justify-center space-y-8">
+              {/* Enhanced Voice Circle */}
               <div 
-                className={cn(
-                  "absolute inset-0 rounded-full border-2 animate-pulse-slow",
-                  isRecording 
-                    ? "border-vibe-purple/50" 
-                    : isAiThinking
-                      ? "border-yellow-500/50"
-                      : isAiSpeaking 
-                        ? "border-blue-500/50" 
-                        : "border-white/20"
-                )}
-              ></div>
+                className="relative cursor-pointer transition-all duration-300 hover:scale-105 flex items-center justify-center w-[280px] h-[280px]"
+                onClick={handleVoiceCircleClick}
+              >
+                {/* Outer Ring */}
+                <div 
+                  className={cn(
+                    "absolute inset-0 rounded-full border-4 transition-all duration-500",
+                    voiceStatus === 'listening' 
+                      ? "border-green-400/60 animate-pulse scale-110" 
+                      : voiceStatus === 'processing'
+                        ? "border-yellow-400/60 animate-pulse scale-105"
+                        : voiceStatus === 'speaking' 
+                          ? "border-blue-400/60 animate-pulse scale-110" 
+                          : "border-white/30 scale-100"
+                  )}
+                  style={{
+                    transform: `scale(${circleScale})`
+                  }}
+                ></div>
+                
+                {/* Main Circle */}
+                <div 
+                  className={cn(
+                    "relative w-64 h-64 rounded-full flex items-center justify-center transition-all duration-500 shadow-2xl backdrop-blur-sm",
+                    voiceStatus === 'listening' 
+                      ? "bg-gradient-to-br from-green-400/30 to-emerald-500/30 border-2 border-green-400/50" 
+                      : voiceStatus === 'processing'
+                        ? "bg-gradient-to-br from-yellow-400/30 to-orange-500/30 border-2 border-yellow-400/50"
+                        : voiceStatus === 'speaking' 
+                          ? "bg-gradient-to-br from-blue-400/30 to-purple-500/30 border-2 border-blue-400/50" 
+                          : "bg-gradient-to-br from-white/10 to-white/5 border-2 border-white/20"
+                  )}
+                  style={{
+                    transform: `scale(${circleScale})`
+                  }}
+                >
+                  {/* Waveform Visualization */}
+                  {(voiceStatus === 'listening' || voiceStatus === 'speaking') && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="flex items-end h-24 space-x-1">
+                        {waveformData.slice(0, 30).map((height, i) => (
+                          <div 
+                            key={i}
+                            className={cn(
+                              "w-1.5 rounded-full transition-all duration-100",
+                              voiceStatus === 'listening' ? "bg-green-400" : "bg-blue-400"
+                            )}
+                            style={{ 
+                              height: `${Math.max(height * 80, 4)}px`,
+                              opacity: 0.7 + height * 0.3
+                            }}
+                          ></div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Processing Spinner */}
+                  {voiceStatus === 'processing' && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                  
+                  {/* Idle State Icon */}
+                  {voiceStatus === 'idle' && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Mic className="h-16 w-16 text-white/60" />
+                    </div>
+                  )}
+                </div>
+              </div>
               
-              {/* Waveform */}
-              {(isRecording || isAiSpeaking) && (
-                <div className="absolute inset-0 flex items-center justify-center" ref={waveformRef}>
-                  <div className="flex items-end h-16 space-x-1">
-                    {waveformData.map((height, i) => (
-                      <div 
-                        key={i}
-                        className={cn(
-                          "w-1 rounded-full animate-waveform",
-                          isRecording ? "bg-vibe-purple" : "bg-blue-500"
-                        )}
-                        style={{ 
-                          height: `${height * 100}%`,
-                          animationDelay: `${i * 30}ms`
-                        }}
-                      ></div>
-                    ))}
+              {/* Status Display */}
+              <div className="text-center space-y-4">
+                <h2 className="text-2xl font-bold text-white">
+                  {voiceStatus === 'listening' && 'Listening...'}
+                  {voiceStatus === 'processing' && 'Processing...'}
+                  {voiceStatus === 'speaking' && 'Speaking...'}
+                  {voiceStatus === 'idle' && 'Ready to Listen'}
+                </h2>
+                
+                {/* Live Transcript */}
+                {currentTranscript && (
+                  <div className="max-w-2xl mx-auto p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+                    <p className="text-white/90 text-lg leading-relaxed">
+                      <span className="text-green-400 font-medium">You: </span>
+                      {currentTranscript}
+                    </p>
                   </div>
-                </div>
-              )}
-              
-              {/* Loading spinner when AI is thinking */}
-              {isAiThinking && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-10 h-10 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              )}
-              
-              {/* Status text */}
-              <div className="absolute -bottom-16 text-center">
-                <p className="text-white/80 text-lg font-medium">
-                  {isRecording 
-                    ? "Listening..." 
-                    : isAiThinking
-                      ? "Processing..." 
-                      : isAiSpeaking 
-                        ? "Speaking..." 
-                        : "Click microphone to start"
-                  }
-                </p>
-                {captions.length > 0 && isRecording && (
-                  <div className="mt-2 max-w-md">
-                    <p className="text-white/60 text-sm">{captions[0]}</p>
+                )}
+                
+                {/* AI Response */}
+                {aiResponse && voiceStatus === 'speaking' && (
+                  <div className="max-w-2xl mx-auto p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20">
+                    <p className="text-white/90 text-lg leading-relaxed">
+                      <span className="text-blue-400 font-medium">AI: </span>
+                      {aiResponse}
+                    </p>
                   </div>
                 )}
               </div>
             </div>
             
             {/* Instructions */}
-            <div className="absolute bottom-8 left-0 right-0 text-center">
+            <div className="absolute bottom-8 left-0 right-0 text-center space-y-2">
+              <p className="text-white/80 text-lg font-medium">
+                {voiceStatus === 'idle' && 'Click the circle to start speaking'}
+                {voiceStatus === 'listening' && 'Speak now... Click again to stop'}
+                {voiceStatus === 'processing' && 'Processing your request...'}
+                {voiceStatus === 'speaking' && 'AI is responding...'}
+              </p>
               <p className="text-white/60 text-sm">
-                {isRecording 
-                  ? "Speak now..." 
-                  : isAiThinking
-                    ? "Processing..." 
-                    : isAiSpeaking 
-                      ? "Listening to AI..." 
-                      : "Tap the circle to start speaking"}
+                Continuous conversation mode is active • Press ESC or click X to exit
               </p>
             </div>
+            
+            {/* Keyboard shortcut handler */}
+            <div 
+              className="absolute inset-0 -z-10"
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  toggleVoiceMode();
+                }
+              }}
+              tabIndex={-1}
+            ></div>
           </div>
         )}
         
         {/* Input area */}
         <div className="flex items-end gap-3 px-4 pb-4">
           <textarea
-            className="flex-1 min-h-[44px] max-h-40 resize-none rounded-xl px-4 py-3 bg-white/10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-vibe-purple/50 transition-all duration-200"
+            className="flex-1 min-h-[44px] max-h-40 resize-none rounded-xl px-4 py-3 bg-white/10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-teal-400/50 transition-all duration-200"
             placeholder="Type your message... (Shift+Enter for new line)"
             value={inputText}
             onChange={e => setInputText(e.target.value)}
@@ -896,7 +1188,7 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
           />
           <Button
             onClick={handleSendMessage}
-            className="rounded-full h-12 w-12 flex items-center justify-center bg-gradient-to-br from-vibe-purple to-vibe-blue shadow-lg hover:scale-105 transition-all duration-300"
+            className="rounded-full h-12 w-12 flex items-center justify-center bg-gradient-to-br from-blue-400 to-purple-400 shadow-md hover:shadow-blue-400/50 hover:shadow-lg transition-all duration-300"
             data-interactive
             disabled={isAiThinking || inputText.trim() === ''}
           >
@@ -905,8 +1197,8 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
           <Button
             onClick={toggleVoiceMode}
             className={cn(
-              "rounded-full h-12 w-12 flex items-center justify-center bg-gradient-to-br from-vibe-blue to-vibe-purple shadow-lg hover:scale-105 transition-all duration-300",
-              voiceMode && "ring-2 ring-vibe-purple"
+              "rounded-full h-12 w-12 flex items-center justify-center bg-gradient-to-br from-blue-400 to-purple-400 shadow-md hover:shadow-blue-400/50 hover:shadow-lg transition-all duration-300",
+              voiceMode && "ring-2 ring-purple-300"
             )}
             data-interactive
             aria-label="Toggle Voice Mode"
@@ -919,15 +1211,27 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
       
       {/* Right panel for Idea Refinement Canvas */}
       <div className="w-[35%] h-full p-4 bg-black/20 backdrop-blur-lg border-l border-white/10">
-        <Card className="h-full rounded-xl overflow-hidden border-white/20 bg-white/5 backdrop-blur-lg shadow-xl" data-glass>
+        <Card className="h-full rounded-2xl overflow-hidden border-white/20 bg-white/5 backdrop-blur-lg shadow-xl" data-glass>
           <div className="p-6 flex flex-col h-full">
-            <h3 className="text-lg font-bold mb-4 flex items-center text-white/90">
-              {/* You can add an icon here if you like, e.g., <Lightbulb className="h-5 w-5 mr-3 text-vibe-purple" /> */}
-              Idea Refinement Canvas
-            </h3>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-white/90">Idea Refinement Canvas</h2>
+                <div className="flex items-center space-x-2">
+                  {canvasContent && !canvasContent.startsWith('⚠️ Error') && (
+                    <Button
+                      onClick={handleDownloadCanvas}
+                      variant="outline"
+                      size="sm"
+                      className="bg-gradient-to-r from-blue-400 to-purple-400 text-white border-blue-400/50 hover:border-blue-400/70 transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 shadow-md hover:shadow-blue-400/50 hover:shadow-lg active:scale-95 rounded-full"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download
+                    </Button>
+                  )}
+                </div>
+              </div>
             
             {/* Content area for the canvas response */}
-            <div className="flex-grow overflow-y-auto p-1 rounded-lg bg-black/20 border border-white/10 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+            <div className="flex-grow overflow-y-auto p-1 rounded-xl bg-black/20 border border-white/10 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent backdrop-blur-sm">
               {isAiThinking && !canvasContent && (
                 <div className="flex items-center justify-center h-full">
                   <Loader className="h-8 w-8 animate-spin text-vibe-purple" />
@@ -966,7 +1270,7 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
               )}
             </div>
 
-            {/* Removed Framework Selection Cards and Code Snippet Box from here */} Minimal change to keep existing structure.
+          
             {setupProgress.length > 0 && setupProgress.includes("Setting up web application environment...") && (
               <div className="mt-8">
                 <h4 className="text-sm font-medium mb-4 text-white/80">Select Framework</h4>
@@ -1021,7 +1325,7 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
             {/* Generate Canvas Button - positioned at the bottom */}
             <div className="mt-4 pt-4 border-t border-white/10">
               <Button 
-                className="w-full py-3 rounded-lg bg-gradient-to-br from-vibe-purple to-vibe-blue hover:from-vibe-purple/90 hover:to-vibe-blue/90 text-white font-medium shadow-md hover:shadow-lg border border-white/10 backdrop-blur-sm transition-all duration-200 ease-in-out transform hover:scale-105 active:scale-95 flex items-center justify-center"
+                className="w-full py-3 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 text-white font-medium shadow-md hover:shadow-blue-400/50 hover:shadow-lg border border-white/10 backdrop-blur-sm transition-all duration-200 ease-in-out active:scale-95 flex items-center justify-center"
                 data-interactive
                 onClick={handleGenerateCanvas}
                 disabled={isAiThinking}
@@ -1055,7 +1359,7 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
                 variant="ghost" 
                 size="icon" 
                 onClick={() => setShowInfo(false)}
-                className="rounded-full"
+                className="rounded-full bg-white/10 hover:shadow-purple-500/40 hover:shadow-lg transition-all duration-300"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -1077,7 +1381,7 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
             </div>
             
             <Button 
-              className="w-full mt-6 bg-gradient-to-r from-vibe-purple to-vibe-blue hover:from-vibe-purple/90 hover:to-vibe-blue/90"
+              className="w-full mt-6 bg-gradient-to-r from-purple-600 to-indigo-700 rounded-full shadow-md hover:shadow-purple-500/50 hover:shadow-xl transition-all duration-300"
               onClick={() => setShowInfo(false)}
             >
               Got it
