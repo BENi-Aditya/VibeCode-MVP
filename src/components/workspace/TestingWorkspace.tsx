@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,7 @@ export function TestingWorkspace() {
               <RefreshCw className="h-4 w-4 mr-1" />
               Refresh
             </Button>
-            <Button className="bg-vibe-purple hover:bg-vibe-dark-purple hover:scale-105 transition-transform">
+            <Button className="bg-vibe-purple hover:bg-vibe-dark-purple transition-all duration-300 hover:shadow-[0_0_20px_rgba(155,135,245,0.5)] hover:border-vibe-purple/50 border border-transparent">
               <Play className="h-4 w-4 mr-1" />
               Run
             </Button>
