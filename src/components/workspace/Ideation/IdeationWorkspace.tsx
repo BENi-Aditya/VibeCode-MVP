@@ -34,6 +34,25 @@ interface ModelOption {
   available: boolean;
 }
 
+// Utility to extract triple-quote code blocks from a string
+function extractTripleQuoteBlocks(text: string) {
+  const regex = /"""([\w./-]+)"""\s*([\s\S]*?)\s*"""/g;
+  let match;
+  const blocks = [];
+  let lastIndex = 0;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      blocks.push({ type: 'text', content: text.slice(lastIndex, match.index) });
+    }
+    blocks.push({ type: 'code', filename: match[1], code: match[2] });
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    blocks.push({ type: 'text', content: text.slice(lastIndex) });
+  }
+  return blocks;
+}
+
 export function IdeationWorkspace() {
   // Chat state
   const [messages, setMessages] = useState<Message[]>([
@@ -1282,51 +1301,38 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
               )}
               {canvasContent ? (
                 <div className="prose prose-sm prose-invert max-w-none p-3 text-white/90">
-                  <ReactMarkdown 
-                    components={{
-                      p: ({node, ...props}) => <p className="mb-2" {...props} />,
-                      h1: ({node, ...props}) => <h1 className="text-xl font-bold mb-3 text-vibe-blue" {...props} />,
-                      h2: ({node, ...props}) => <h2 className="text-lg font-semibold mb-2 text-vibe-purple" {...props} />,
-                      h3: ({node, ...props}) => <h3 className="text-md font-medium mb-1" {...props} />,
-                      ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 pl-4" {...props} />,
-                      ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 pl-4" {...props} />,
-                      li: ({node, ...props}) => <li className="mb-1" {...props} />,
-                      code: ({node, inline, className, children, ...props}: {node: any, inline?: boolean, className?: string, children: React.ReactNode}) => {
-                        const match = /language-(\w+)/.exec(className || '');
-                        const [isCopied, setIsCopied] = React.useState(false);
-                        const codeRef = React.useRef<HTMLPreElement>(null);
-                        const handleCopy = () => {
-                          if (codeRef.current) {
-                            navigator.clipboard.writeText(codeRef.current.innerText);
-                            setIsCopied(true);
-                            setTimeout(() => setIsCopied(false), 1200);
-                          }
-                        };
-                        return !inline && match ? (
-                          <div className="relative group">
-                            <pre ref={codeRef} className="bg-black/40 p-2 rounded-md my-2 overflow-x-auto text-sm custom-canvas-scroll custom-canvas-cursor">
-                              <code>{String(children).replace(/\n$/, '')}</code>
-                            </pre>
-                            <button
-                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-vibe-purple/80 hover:bg-vibe-blue/80 text-white rounded-full px-2 py-1 text-xs shadow focus:outline-none"
-                              onClick={handleCopy}
-                              title={isCopied ? 'Copied!' : 'Copy'}
-                              style={{zIndex: 10}}
-                            >
-                              {isCopied ? '✓' : 'Copy'}
-                            </button>
+                  {extractTripleQuoteBlocks(canvasContent).map((block, idx) => {
+                    if (block.type === 'code') {
+                      // Guess language from filename extension
+                      const ext = block.filename.split('.').pop() || '';
+                      const lang = ext === 'py' ? 'python' : ext === 'js' ? 'javascript' : ext;
+                      return (
+                        <div className="relative vibe-codeblock" key={idx}>
+                          <div className="vibe-codeblock-header flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/15 rounded-t-[0.7rem]">
+                            <span className="text-xs font-mono text-white/70">{block.filename}</span>
+                            <div className="flex gap-2">
+                              <button
+                                className="vibe-codeblock-copy"
+                                onClick={() => {navigator.clipboard.writeText(block.code)}}
+                                title="Copy"
+                                style={{zIndex: 10}}
+                              >
+                                Copy
+                              </button>
+                            </div>
                           </div>
-                        ) : (
-                          <code className="bg-black/40 px-1 py-0.5 rounded-sm text-vibe-pink text-xs" {...props}>
-                            {children}
-                          </code>
-                        );
-                      },
-                      a: ({node, ...props}) => <a className="text-vibe-green hover:underline" target="_blank" rel="noopener noreferrer" {...props} />
-                    }}
-                  >
-                    {canvasContent}
-                  </ReactMarkdown>
+                          <div className="vibe-codeblock-body" style={{maxHeight: '340px', overflow: 'auto', borderRadius: '0 0 0.7rem 0.7rem'}}>
+                            <pre className={`vibe-codeblock-pre vibe-codeblock-wrap`} tabIndex={0}>
+                              <code className={`language-${lang}`}>{block.code}</code>
+                            </pre>
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      // Render normal markdown for non-code
+                      return <ReactMarkdown key={idx}>{block.content}</ReactMarkdown>;
+                    }
+                  })}
                 </div>
               ) : (
                 !isAiThinking && <p className="text-center text-white/50 p-4">Click "Generate Canvas" to see the AI-refined breakdown of your idea here.</p>

@@ -1,31 +1,9 @@
+// IMPORTANT: Set VITE_TERMINAL_WS_URL in your Render frontend environment variables to the deployed terminal backend's WebSocket URL (e.g., wss://your-terminal-service.onrender.com/). The terminal will not work in production without this.
 import React, { useState, useRef, useEffect } from 'react';
 import MonacoEditor from '@monaco-editor/react';
 import { codingWorkspaceInstructions } from '../../lib/customInstructions';
 import ReactMarkdown from 'react-markdown';
-
-// --- Terminal Output ---
-function Terminal({ output, isRunning, onClear, height }: { output: string[]; isRunning: boolean; onClear: () => void; height: number }) {
-  const terminalRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    terminalRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [output, isRunning]);
-  return (
-    <div className="w-full bg-[#181825] border-t-2 border-vibe-purple/30 rounded-b-2xl shadow-xl flex flex-col" style={{ minHeight: 80, height }}>
-      <div className="flex items-center px-4 py-2 gap-2 border-b border-vibe-purple/30 rounded-t-xl bg-[#181825]">
-        <span className="w-4 h-4 bg-vibe-purple rounded-full mr-2" />
-        <span className="text-vibe-purple font-bold">Terminal</span>
-        <button className="ml-auto text-vibe-purple hover:bg-vibe-purple/10 rounded px-2 py-1 text-xs" onClick={onClear}>Clear</button>
-      </div>
-      <div className="p-4 font-mono text-xs text-vibe-green flex-1 overflow-y-auto animate-fade-in" style={{ minHeight: 40 }}>
-        {output.map((line, i) => (
-          <div key={i} className="whitespace-pre-line">{line}</div>
-        ))}
-        {isRunning && <div className="animate-pulse text-vibe-purple">▋</div>}
-        <div ref={terminalRef} />
-      </div>
-    </div>
-  );
-}
+import TerminalComponent, { TerminalHandle } from '../../../components/Terminal';
 
 // --- Draggable Divider ---
 function DragBar({ onDrag }: { onDrag: (deltaY: number) => void }) {
@@ -243,60 +221,55 @@ function AIAssistantPanel({ setCode }: { setCode: (code: string) => void }) {
 // --- Main Coding Workspace ---
 export function CodingWorkspace() {
   const [code, setCode] = useState("print('Hello, VibeCode!')\n# Write your code here!");
-  const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
-  const [isRunning, setIsRunning] = useState(false);
-  // Calculate available height for the main coding area (minus header/tabs)
-  const HEADER_HEIGHT = 54 + 36; // px, header + tabs
-  const [containerHeight, setContainerHeight] = useState(window.innerHeight - 2 * 16); // minus padding
+  const [containerHeight, setContainerHeight] = useState(window.innerHeight - 2 * 16);
+  const HEADER_HEIGHT = 54 + 36;
+  const defaultTerminalHeight = Math.round((containerHeight - HEADER_HEIGHT) * 0.3);
+  const defaultEditorHeight = (containerHeight - HEADER_HEIGHT) - defaultTerminalHeight;
+  const [editorHeight, setEditorHeight] = useState(defaultEditorHeight);
+  const [terminalHeight, setTerminalHeight] = useState(defaultTerminalHeight);
+  const terminalRef = useRef<TerminalHandle>(null);
+
+  // Use env variable for wsUrl. Only use fallback in local dev.
+  let wsUrl = import.meta.env.VITE_TERMINAL_WS_URL;
+  if (!wsUrl) {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      wsUrl = 'ws://localhost:8081/';
+    }
+  }
+
   useEffect(() => {
     const handleResize = () => setContainerHeight(window.innerHeight - 2 * 16);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  const defaultTerminalHeight = Math.round((containerHeight - HEADER_HEIGHT) * 0.3);
-  const defaultEditorHeight = (containerHeight - HEADER_HEIGHT) - defaultTerminalHeight;
-  const [editorHeight, setEditorHeight] = useState(defaultEditorHeight);
-  const [terminalHeight, setTerminalHeight] = useState(defaultTerminalHeight);
 
-  // Run code using Piston API (fully correct format)
-  const handleRun = async () => {
-    setIsRunning(true);
-    setTerminalOutput([`$ python main.py`]);
-    try {
-      const response = await fetch('https://emkc.org/api/v2/piston/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          language: 'python3',
-          version: '*',
-          files: [{ name: 'main.py', content: code }],
-          stdin: '',
-          args: [],
-        })
-      });
-      const data = await response.json();
-      // Piston returns 'run.stdout' and 'run.stderr' in the new API
-      const outputLines = [
-        ...(data.run?.stdout ? data.run.stdout.split('\n') : []),
-        ...(data.run?.stderr ? data.run.stderr.split('\n') : []),
-      ];
-      setTerminalOutput(prev => [...prev, ...outputLines]);
-    } catch (e: any) {
-      setTerminalOutput(prev => [...prev, `Error: ${e.message}`]);
-    }
-    setIsRunning(false);
-  };
-
-  // Handle resizing
   const handleDrag = (deltaY: number) => {
     setEditorHeight(h => Math.max(100, h + deltaY));
-    setTerminalHeight(h => Math.max(80, h - deltaY));
+    setTerminalHeight(h => Math.max(120, h - deltaY));
+  };
+
+  // Send code to terminal on Run Code
+  const handleRunCode = () => {
+    if (terminalRef.current) {
+      const hereDoc = [
+        'clear',
+        'echo "--- Running main.py ---"',
+        'cat <<EOF > main.py',
+        ...code.split('\n'),
+        'EOF',
+        'echo -e "\x1b[36m"', // Set color to cyan
+        'python main.py',
+        'echo -e "\x1b[0m"', // Reset color
+        ''
+      ].join('\n');
+      terminalRef.current.sendToTerminal(hereDoc);
+    }
   };
 
   return (
     <div className="flex h-screen w-full bg-gradient-to-br from-[#0c0915] via-[#121125] to-[#1b1a2e] p-4 gap-4">
       {/* File Explorer */}
-      <div className="w-60 bg-black/30 border border-white/10 flex flex-col rounded-2xl shadow-lg backdrop-blur-xl">
+      <div className="w-60 bg-black/30 border border-white/10 flex flex-col rounded-2xl shadow-lg backdrop-blur-xl h-full">
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 rounded-t-2xl bg-black/40">
           <span className="text-xs font-bold text-white tracking-widest">EXPLORER</span>
           <div className="flex gap-1">
@@ -311,34 +284,33 @@ export function CodingWorkspace() {
         </div>
       </div>
       {/* Main coding area: header, tabs, editor, terminal */}
-      <div className="flex-1 flex flex-col bg-black/20 border border-white/10 rounded-2xl shadow-2xl min-w-0 relative" style={{height: containerHeight}}>
-        {/* Header - Thinner, compact */}
+      <div className="flex-1 flex flex-col bg-black/20 border border-white/10 rounded-2xl shadow-2xl min-w-0 relative h-full">
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-2 border-b border-white/10 bg-gradient-to-r from-vibe-purple/40 to-vibe-blue/30 rounded-t-2xl shadow-lg relative min-h-[54px]">
           <div className="flex items-center gap-3">
             <span className="text-white/90 font-mono text-base font-bold tracking-wide drop-shadow-lg">main.py</span>
             <span className="ml-3 px-2 py-0.5 rounded-full bg-vibe-purple/20 text-vibe-purple text-xs font-semibold tracking-widest shadow">PYTHON</span>
           </div>
-          {/* Floating Run Button - compact, modern */}
+          {/* Run Button */}
           <button
             className="relative group flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-br from-vibe-purple to-vibe-blue shadow-xl hover:scale-110 hover:shadow-2xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-vibe-blue/30 border border-white/10"
             style={{ top: '0.1rem', right: '0.1rem' }}
-            onClick={handleRun}
-            disabled={isRunning}
             aria-label="Run Code"
+            onClick={handleRunCode}
           >
             <span className="relative flex items-center justify-center w-6 h-6">
               <span className="absolute inline-flex h-full w-full rounded-full bg-vibe-blue opacity-40 group-hover:animate-ping"></span>
               <svg className="w-5 h-5 text-white drop-shadow" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 3v18l15-9L5 3z" /></svg>
             </span>
-            <span className="text-white font-bold text-sm tracking-wide drop-shadow">{isRunning ? 'Running...' : 'Run Code'}</span>
+            <span className="text-white font-bold text-sm tracking-wide drop-shadow">Run Code</span>
           </button>
         </div>
-        {/* Tabs (placeholder) */}
+        {/* Tabs */}
         <div className="flex items-center gap-2 px-6 py-1 border-b border-white/10 bg-black/30">
           <div className="flex items-center px-3 py-1 rounded-lg mr-2 bg-vibe-purple/30 text-white font-bold shadow">
             <span className="mr-2">main.py</span>
             <button className="ml-1 text-white/60 hover:text-red-400">×</button>
-            </div>
+          </div>
         </div>
         {/* Editor */}
         <div style={{ height: editorHeight }}>
@@ -371,8 +343,14 @@ export function CodingWorkspace() {
         </div>
         {/* Draggable divider */}
         <DragBar onDrag={handleDrag} />
-        {/* Terminal always visible at the bottom, matches editor width and border radius */}
-        <Terminal output={terminalOutput} isRunning={isRunning} onClear={() => setTerminalOutput([])} height={terminalHeight} />
+        {/* Terminal */}
+        <div style={{ height: terminalHeight }} className="w-full bg-[#181825] border-t-2 border-vibe-purple/30 rounded-b-2xl shadow-xl flex flex-col animate-fade-in">
+          <div className="flex items-center px-4 py-2 gap-2 border-b border-vibe-purple/30 rounded-t-xl bg-[#181825]">
+            <span className="w-4 h-4 bg-vibe-purple rounded-full mr-2" />
+            <span className="text-vibe-purple font-bold">Terminal (Interactive)</span>
+          </div>
+          <TerminalComponent ref={terminalRef} wsUrl={wsUrl} height={terminalHeight} />
+        </div>
       </div>
       {/* AI Chat Panel */}
       <AIAssistantPanel setCode={setCode} />
