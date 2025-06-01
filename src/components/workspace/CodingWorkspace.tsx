@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import TerminalComponent, { TerminalHandle } from '../../../components/Terminal';
 import rehypeHighlight from 'rehype-highlight';
 import { Download } from 'lucide-react';
+import { ExploreExamplesBox } from '@/components/ui/ExploreExamplesBox';
 
 // --- Draggable Divider ---
 function DragBar({ onDrag }: { onDrag: (deltaY: number) => void }) {
@@ -133,14 +134,57 @@ function AIAssistantPanel({ setCode }: { setCode: (code: string) => void }) {
     // Otherwise, allow Shift+Enter for new lines
   };
 
+  // Utility: Detect if a string looks like code (basic heuristic)
+  function isLikelyCode(text: string) {
+    // Heuristic: lots of indents, semicolons, or lines starting with def/class/for/if/while/return
+    const lines = text.split('\n');
+    const codeLines = lines.filter(l => l.match(/^(\s{2,}|def |class |for |if |while |return |import |print\()/));
+    return codeLines.length > 2 || /def |class |import |print\(/.test(text);
+  }
+
+  // Fallback: Wrap plain code in markdown if missing backticks
+  function ensureMarkdownCodeBlock(text: string) {
+    // If already contains triple backticks, return as is
+    if (/```/.test(text)) return text;
+    // If it looks like code, wrap it
+    if (isLikelyCode(text)) {
+      // Try to guess language (default python)
+      let lang = 'python';
+      if (/function |const |let |var /.test(text)) lang = 'javascript';
+      if (/public |private |class |void /.test(text)) lang = 'java';
+      return `\
+\`\`\`${lang}\n${text}\n\`\`\``;
+    }
+    return text;
+  }
+
+  // Utility: Extract code string from children (handles array, string, object)
+  function extractCodeString(children: any): string {
+    if (Array.isArray(children)) {
+      return children.map(extractCodeString).join('');
+    } else if (typeof children === 'string') {
+      return children;
+    } else if (typeof children === 'object' && children && 'props' in children) {
+      return extractCodeString(children.props.children);
+    }
+    return '';
+  }
+
   // Custom code block renderer for copy/apply buttons
   function CodeBlock({node, inline, className, children, ...props}: any) {
     const match = /language-(\w+)/.exec(className || '');
-    const code = String(children).replace(/\n$/, '');
+    const code = extractCodeString(children).replace(/\n$/, '');
+    // Show filename if language is detected
+    let filename = '';
+    if (match && match[1]) {
+      if (match[1] === 'python') filename = 'main.py';
+      else if (match[1] === 'javascript') filename = 'main.js';
+      else filename = `file.${match[1]}`;
+    }
     return !inline ? (
       <div className="relative vibe-codeblock">
         <div className="vibe-codeblock-header flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/15 rounded-t-[0.7rem]">
-          <span className="text-xs font-mono text-white/70">{match ? match[1] : ''}</span>
+          <span className="text-xs font-mono text-white/70">{filename || (match ? match[1] : '')}</span>
           <div className="flex gap-2">
             <button
               className="vibe-codeblock-copy"
@@ -171,16 +215,6 @@ function AIAssistantPanel({ setCode }: { setCode: (code: string) => void }) {
     );
   }
 
-  function extractMarkdownCodeBlocks(text: string): string {
-    // This will extract all code blocks and join them, or return the original if none found
-    const codeBlockRegex = /```[a-zA-Z0-9]*[\s\S]*?```/g;
-    const matches = text.match(codeBlockRegex);
-    if (matches && matches.length > 0) {
-      return matches.join('\n\n');
-    }
-    return text;
-  }
-
   return (
     <div className="w-[32%] max-w-[420px] h-full bg-black/20 backdrop-blur-lg border border-white/10 flex-shrink-0 rounded-2xl shadow-2xl flex flex-col">
       <div className="h-full rounded-2xl overflow-hidden border-white/20 bg-white/5 backdrop-blur-lg shadow-xl flex flex-col" data-glass>
@@ -200,7 +234,7 @@ function AIAssistantPanel({ setCode }: { setCode: (code: string) => void }) {
                   </div>
                   <div className="text-white/90 text-sm min-w-0">
                     <ReactMarkdown rehypePlugins={[rehypeHighlight]} components={{code: (props) => <CodeBlock {...props} />}}>
-                      {extractMarkdownCodeBlocks(msg.content)}
+                      {msg.sender === 'ai' ? ensureMarkdownCodeBlock(msg.content) : msg.content}
                     </ReactMarkdown>
                   </div>
                 </div>
@@ -222,6 +256,17 @@ function AIAssistantPanel({ setCode }: { setCode: (code: string) => void }) {
             )}
             <div ref={chatEndRef} />
           </div>
+          <ExploreExamplesBox
+            examples={[
+              'Create a Python function to check if a number is prime.',
+              'Write a basic calculator in Python using functions.',
+              'Write a Python script that renames all files in a folder to lowercase.',
+              'Generate a Python script that sends an email alert if CPU usage crosses 80%.',
+              'Create a Python script that reads a CSV and prints the sum of a column.'
+            ]}
+            onExampleClick={setInputText}
+            className="mb-2 mt-4"
+          />
           <div className="mt-4 flex items-center gap-2">
             <textarea
               ref={inputRef}
