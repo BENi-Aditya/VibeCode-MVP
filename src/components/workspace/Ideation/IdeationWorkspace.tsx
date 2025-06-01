@@ -1242,11 +1242,16 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
         <div className="mb-1 mx-auto" style={{ marginBottom: 4, maxWidth: 800, width: '100%' }}>
           <ExploreExamplesBox
             examples={[
-              'Create a Python function to check if a number is prime.',
-              'Write a basic calculator in Python using functions.',
-              'Write a Python script that renames all files in a folder to lowercase.',
-              'Generate a Python script that sends an email alert if CPU usage crosses 80%.',
-              'Create a Python script that reads a CSV and prints the sum of a column.'
+              'I want to create a simple matplotlib plotter',
+              'I want to build a random password generator',
+              'I want to make a to-do list CLI app',
+              'I want to visualize CSV data',
+              'I want to create a basic weather fetcher',
+              'I want to make a text-based calculator',
+              'I want to create a file organizer script',
+              'I want to build a timer/alarm app',
+              'I want to make a simple flashcard quizzer',
+              'I want to generate QR codes from text'
             ]}
             onExampleClick={setInputText}
             className="py-1"
