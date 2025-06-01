@@ -70,15 +70,15 @@ export function WorkspaceSidebar({ activeWorkspace, onWorkspaceChange }: Workspa
   ];
 
   const handleWorkspaceClick = (workspace: WorkspaceButton) => {
-    if (workspace.id === 'ideation' || workspace.id === 'coding') {
-      onWorkspaceChange(workspace.id);
-      setShowConstruction(false);
-    } else {
+    if (workspace.id === 'testing' || workspace.id === 'deployment') {
       setConstructionInfo({
         name: workspace.label,
         description: workspace.description
       });
       setShowConstruction(true);
+    } else {
+      onWorkspaceChange(workspace.id);
+      setShowConstruction(false);
     }
   };
 

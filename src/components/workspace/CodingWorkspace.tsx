@@ -4,6 +4,7 @@ import MonacoEditor from '@monaco-editor/react';
 import { codingWorkspaceInstructions } from '../../lib/customInstructions';
 import ReactMarkdown from 'react-markdown';
 import TerminalComponent, { TerminalHandle } from '../../../components/Terminal';
+import rehypeHighlight from 'rehype-highlight';
 
 // --- Draggable Divider ---
 function DragBar({ onDrag }: { onDrag: (deltaY: number) => void }) {
@@ -41,6 +42,30 @@ function AIAssistantPanel({ setCode }: { setCode: (code: string) => void }) {
   const [isThinking, setIsThinking] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [ideaContext, setIdeaContext] = useState<string | null>(null);
+
+  // Load idea context from localStorage (set by IdeationWorkspace)
+  useEffect(() => {
+    // Try both canvasContent and a dedicated key for robustness
+    const canvas = localStorage.getItem('vibecode-ideation-canvas') || localStorage.getItem('vibecode-ideation-canvasContent');
+    if (canvas && typeof canvas === 'string' && canvas.length > 0) {
+      setIdeaContext(canvas);
+    }
+  }, []);
+
+  useEffect(() => {
+    const savedChat = localStorage.getItem('vibecode-coding-chat');
+    if (savedChat) {
+      try {
+        const parsed = JSON.parse(savedChat);
+        setMessages(parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })));
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('vibecode-coding-chat', JSON.stringify(messages));
+  }, [messages]);
 
   React.useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -63,6 +88,11 @@ function AIAssistantPanel({ setCode }: { setCode: (code: string) => void }) {
     try {
       const apiKey = import.meta.env.VITE_APP_OPENAI_API_KEY;
       if (!apiKey) throw new Error('No OpenAI API key configured.');
+      // Compose system prompt with idea context if available
+      let systemPrompt = codingWorkspaceInstructions;
+      if (ideaContext) {
+        systemPrompt = `${codingWorkspaceInstructions}\n\n---\n\n# Project Idea Context (from Ideation Workspace):\n${ideaContext}\n---\n`;
+      }
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -72,7 +102,7 @@ function AIAssistantPanel({ setCode }: { setCode: (code: string) => void }) {
         body: JSON.stringify({
           model: 'gpt-4.1-nano',
           messages: [
-            { role: 'system', content: codingWorkspaceInstructions },
+            { role: 'system', content: systemPrompt },
             ...messages.map(msg => ({ role: msg.sender === 'user' ? 'user' : 'assistant', content: msg.content })),
             { role: 'user', content: userMessage.content }
           ],
@@ -81,7 +111,11 @@ function AIAssistantPanel({ setCode }: { setCode: (code: string) => void }) {
       });
       if (!response.ok) throw new Error('API error: ' + response.statusText);
       const data = await response.json();
-      const aiResponse = data.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
+      // Fix: Always treat the AI response as a string
+      let aiResponse = data.choices?.[0]?.message?.content;
+      if (typeof aiResponse !== 'string') {
+        aiResponse = JSON.stringify(aiResponse);
+      }
       setMessages(prev => [...prev, { sender: 'ai', content: aiResponse, timestamp: new Date() }]);
     } catch (e: any) {
       setMessages(prev => [...prev, { sender: 'ai', content: `⚠️ ${e.message}`, timestamp: new Date() }]);
@@ -98,23 +132,52 @@ function AIAssistantPanel({ setCode }: { setCode: (code: string) => void }) {
     // Otherwise, allow Shift+Enter for new lines
   };
 
-  // Utility to extract triple-quote code blocks from a string
-  function extractTripleQuoteBlocks(text: string) {
-    const regex = /"""([\w./-]+)"""\s*([\s\S]*?)\s*"""/g;
-    let match;
-    const blocks = [];
-    let lastIndex = 0;
-    while ((match = regex.exec(text)) !== null) {
-      if (match.index > lastIndex) {
-        blocks.push({ type: 'text', content: text.slice(lastIndex, match.index) });
-      }
-      blocks.push({ type: 'code', filename: match[1], code: match[2] });
-      lastIndex = regex.lastIndex;
+  // Custom code block renderer for copy/apply buttons
+  function CodeBlock({node, inline, className, children, ...props}: any) {
+    const match = /language-(\w+)/.exec(className || '');
+    const code = String(children).replace(/\n$/, '');
+    return !inline ? (
+      <div className="relative vibe-codeblock">
+        <div className="vibe-codeblock-header flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/15 rounded-t-[0.7rem]">
+          <span className="text-xs font-mono text-white/70">{match ? match[1] : ''}</span>
+          <div className="flex gap-2">
+            <button
+              className="vibe-codeblock-copy"
+              onClick={() => {navigator.clipboard.writeText(code)}}
+              title="Copy"
+              style={{zIndex: 10}}
+            >
+              Copy
+            </button>
+            <button
+              className="vibe-codeblock-copy"
+              onClick={() => setCode(code)}
+              title="Apply"
+              style={{zIndex: 10}}
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+        <div className="vibe-codeblock-body" style={{maxHeight: '340px', overflow: 'auto', borderRadius: '0 0 0.7rem 0.7rem'}}>
+          <pre className={`vibe-codeblock-pre vibe-codeblock-wrap`} tabIndex={0}>
+            <code className={className}>{code}</code>
+          </pre>
+        </div>
+      </div>
+    ) : (
+      <code className={className} {...props}>{children}</code>
+    );
+  }
+
+  function extractMarkdownCodeBlocks(text: string): string {
+    // This will extract all code blocks and join them, or return the original if none found
+    const codeBlockRegex = /```[a-zA-Z0-9]*[\s\S]*?```/g;
+    const matches = text.match(codeBlockRegex);
+    if (matches && matches.length > 0) {
+      return matches.join('\n\n');
     }
-    if (lastIndex < text.length) {
-      blocks.push({ type: 'text', content: text.slice(lastIndex) });
-    }
-    return blocks;
+    return text;
   }
 
   return (
@@ -131,52 +194,13 @@ function AIAssistantPanel({ setCode }: { setCode: (code: string) => void }) {
                 style={{minWidth: 0}}>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center mb-1">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 ${msg.sender === 'user' ? 'bg-gradient-to-br from-vibe-purple to-vibe-blue' : 'bg-gradient-to-br from-blue-500 to-cyan-500'}`}>
-                      <span className="text-white text-xs font-bold">{msg.sender === 'user' ? 'U' : 'AI'}</span>
-                    </div>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 ${msg.sender === 'user' ? 'bg-gradient-to-br from-vibe-purple to-vibe-blue' : 'bg-gradient-to-br from-blue-500 to-cyan-500'}`}> <span className="text-white text-xs font-bold">{msg.sender === 'user' ? 'U' : 'AI'}</span> </div>
                     <p className="text-xs text-white/60">{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
                   <div className="text-white/90 text-sm min-w-0">
-                    {extractTripleQuoteBlocks(msg.content).map((block, idx) => {
-                      if (block.type === 'code') {
-                        // Guess language from filename extension
-                        const ext = block.filename.split('.').pop() || '';
-                        const lang = ext === 'py' ? 'python' : ext === 'js' ? 'javascript' : ext;
-                        return (
-                          <div className="relative vibe-codeblock" key={idx}>
-                            <div className="vibe-codeblock-header flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/15 rounded-t-[0.7rem]">
-                              <span className="text-xs font-mono text-white/70">{block.filename}</span>
-                              <div className="flex gap-2">
-                                <button
-                                  className="vibe-codeblock-copy"
-                                  onClick={() => {navigator.clipboard.writeText(block.code)}}
-                                  title="Copy"
-                                  style={{zIndex: 10}}
-                                >
-                                  Copy
-                                </button>
-                                <button
-                                  className="vibe-codeblock-copy"
-                                  onClick={() => setCode(block.code)}
-                                  title="Apply"
-                                  style={{zIndex: 10}}
-                                >
-                                  Apply
-                                </button>
-                              </div>
-                            </div>
-                            <div className="vibe-codeblock-body" style={{maxHeight: '340px', overflow: 'auto', borderRadius: '0 0 0.7rem 0.7rem'}}>
-                              <pre className={`vibe-codeblock-pre vibe-codeblock-wrap`} tabIndex={0}>
-                                <code className={`language-${lang}`}>{block.code}</code>
-                              </pre>
-                            </div>
-                          </div>
-                        );
-                      } else {
-                        // Render normal markdown for non-code
-                        return <ReactMarkdown key={idx}>{block.content}</ReactMarkdown>;
-                      }
-                    })}
+                    <ReactMarkdown rehypePlugins={[rehypeHighlight]} components={{code: (props) => <CodeBlock {...props} />}}>
+                      {extractMarkdownCodeBlocks(msg.content)}
+                    </ReactMarkdown>
                   </div>
                 </div>
               </div>
@@ -226,7 +250,6 @@ export function CodingWorkspace() {
   const defaultTerminalHeight = Math.round((containerHeight - HEADER_HEIGHT) * 0.3);
   const defaultEditorHeight = (containerHeight - HEADER_HEIGHT) - defaultTerminalHeight;
   const [editorHeight, setEditorHeight] = useState(defaultEditorHeight);
-  const [terminalHeight, setTerminalHeight] = useState(defaultTerminalHeight);
   const terminalRef = useRef<TerminalHandle>(null);
 
   // Use env variable for wsUrl. Only use fallback in local dev.
@@ -243,9 +266,17 @@ export function CodingWorkspace() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  useEffect(() => {
+    const savedCode = localStorage.getItem('vibecode-coding-code');
+    if (savedCode) setCode(savedCode);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('vibecode-coding-code', code);
+  }, [code]);
+
   const handleDrag = (deltaY: number) => {
     setEditorHeight(h => Math.max(100, h + deltaY));
-    setTerminalHeight(h => Math.max(120, h - deltaY));
   };
 
   // Send code to terminal on Run Code
@@ -312,44 +343,44 @@ export function CodingWorkspace() {
             <button className="ml-1 text-white/60 hover:text-red-400">×</button>
           </div>
         </div>
-        {/* Editor */}
-        <div style={{ height: editorHeight }}>
-          <MonacoEditor
-            height="100%"
-            language="python"
-            value={code}
-            theme="vs-dark"
-            options={{
-              fontSize: 16,
-              fontFamily: 'JetBrains Mono, Fira Mono, Menlo, Monaco, Consolas, monospace',
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              wordWrap: 'on',
-              automaticLayout: true,
-              smoothScrolling: true,
-              lineNumbers: 'on',
-              renderLineHighlight: 'all',
-              autoClosingBrackets: 'always',
-              autoClosingQuotes: 'always',
-              matchBrackets: 'always',
-              suggestOnTriggerCharacters: true,
-              tabSize: 4,
-              insertSpaces: true,
-              cursorBlinking: 'smooth',
-              cursorSmoothCaretAnimation: 'on'
-            }}
-            onChange={v => setCode(v || '')}
-          />
-        </div>
-        {/* Draggable divider */}
-        <DragBar onDrag={handleDrag} />
-        {/* Terminal */}
-        <div style={{ height: terminalHeight }} className="w-full bg-[#181825] border-t-2 border-vibe-purple/30 rounded-b-2xl shadow-xl flex flex-col animate-fade-in">
-          <div className="flex items-center px-4 py-2 gap-2 border-b border-vibe-purple/30 rounded-t-xl bg-[#181825]">
-            <span className="w-4 h-4 bg-vibe-purple rounded-full mr-2" />
-            <span className="text-vibe-purple font-bold">Terminal (Interactive)</span>
+        {/* Editor + Terminal (flex layout) */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <div style={{ flex: '1 1 0%', minHeight: 0 }}>
+            <MonacoEditor
+              height="100%"
+              language="python"
+              value={code}
+              theme="vs-dark"
+              options={{
+                fontSize: 16,
+                fontFamily: 'JetBrains Mono, Fira Mono, Menlo, Monaco, Consolas, monospace',
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                wordWrap: 'on',
+                automaticLayout: true,
+                smoothScrolling: true,
+                lineNumbers: 'on',
+                renderLineHighlight: 'all',
+                autoClosingBrackets: 'always',
+                autoClosingQuotes: 'always',
+                matchBrackets: 'always',
+                suggestOnTriggerCharacters: true,
+                tabSize: 4,
+                insertSpaces: true,
+                cursorBlinking: 'smooth',
+                cursorSmoothCaretAnimation: 'on'
+              }}
+              onChange={v => setCode(v || '')}
+            />
           </div>
-          <TerminalComponent ref={terminalRef} wsUrl={wsUrl} height={terminalHeight} />
+          {/* Terminal */}
+          <div style={{ flex: '0 0 260px', minHeight: 0 }} className="w-full border-t-2 border-vibe-purple/30 rounded-b-2xl shadow-xl flex flex-col animate-fade-in vibe-terminal-bg mt-2">
+            <div className="flex items-center px-4 py-1 gap-2 border-b border-vibe-purple/30 rounded-t-xl bg-gradient-to-r from-[#2d2346]/80 to-[#3a2d5c]/80 relative z-10" style={{minHeight:32}}>
+              <span className="w-4 h-4 bg-vibe-purple rounded-full mr-2" />
+              <span className="text-vibe-purple font-bold">Terminal (Interactive)</span>
+            </div>
+            <TerminalComponent ref={terminalRef} wsUrl={wsUrl} height={208} className="vibe-terminal-bg" />
+          </div>
         </div>
       </div>
       {/* AI Chat Panel */}
