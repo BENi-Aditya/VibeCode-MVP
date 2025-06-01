@@ -110,4 +110,6 @@ def add(a, b):
 return a + b
 """
 
-This tells the frontend to insert or update \`utils/helpers.py\` with the enclosed content, applying proper syntax highlighting in the Monaco Editor.`; 
+This tells the frontend to insert or update \`utils/helpers.py\` with the enclosed content, applying proper syntax highlighting in the Monaco Editor.
+
+ALWAYS output complete, runnable code blocks. If you define a function or class, ALWAYS include the full definition and a function call or example usage at the end, so the code can be run immediately with no errors or missing parts. NEVER output incomplete or partial code blocks. If a function is defined, show it being called with example arguments at the end of the code block.`; 

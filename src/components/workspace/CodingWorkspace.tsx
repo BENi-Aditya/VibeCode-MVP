@@ -5,6 +5,7 @@ import { codingWorkspaceInstructions } from '../../lib/customInstructions';
 import ReactMarkdown from 'react-markdown';
 import TerminalComponent, { TerminalHandle } from '../../../components/Terminal';
 import rehypeHighlight from 'rehype-highlight';
+import { Download } from 'lucide-react';
 
 // --- Draggable Divider ---
 function DragBar({ onDrag }: { onDrag: (deltaY: number) => void }) {
@@ -323,18 +324,35 @@ export function CodingWorkspace() {
             <span className="ml-3 px-2 py-0.5 rounded-full bg-vibe-purple/20 text-vibe-purple text-xs font-semibold tracking-widest shadow">PYTHON</span>
           </div>
           {/* Run Button */}
-          <button
-            className="relative group flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-br from-vibe-purple to-vibe-blue shadow-xl hover:scale-110 hover:shadow-2xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-vibe-blue/30 border border-white/10"
-            style={{ top: '0.1rem', right: '0.1rem' }}
-            aria-label="Run Code"
-            onClick={handleRunCode}
-          >
-            <span className="relative flex items-center justify-center w-6 h-6">
-              <span className="absolute inline-flex h-full w-full rounded-full bg-vibe-blue opacity-40 group-hover:animate-ping"></span>
-              <svg className="w-5 h-5 text-white drop-shadow" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 3v18l15-9L5 3z" /></svg>
-            </span>
-            <span className="text-white font-bold text-sm tracking-wide drop-shadow">Run Code</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              className="relative group flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-vibe-purple to-vibe-blue shadow-xl hover:scale-110 hover:shadow-2xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-vibe-blue/30 border border-white/10"
+              style={{ top: '0.1rem', right: '0.1rem' }}
+              aria-label="Run Code"
+              onClick={handleRunCode}
+            >
+              <span className="relative flex items-center justify-center w-6 h-6">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-vibe-blue opacity-40 group-hover:animate-ping"></span>
+                <svg className="w-5 h-5 text-white drop-shadow" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 3v18l15-9L5 3z" /></svg>
+              </span>
+            </button>
+            <button
+              className="relative group flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-vibe-blue to-vibe-purple shadow-xl hover:scale-110 hover:shadow-2xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-vibe-blue/30 border border-white/10"
+              aria-label="Download Code"
+              onClick={() => {
+                const blob = new Blob([code], { type: 'text/x-python' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'main.py';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+              }}
+            >
+              <Download className="w-5 h-5 text-white drop-shadow" />
+            </button>
+          </div>
         </div>
         {/* Tabs */}
         <div className="flex items-center gap-2 px-6 py-1 border-b border-white/10 bg-black/30">
