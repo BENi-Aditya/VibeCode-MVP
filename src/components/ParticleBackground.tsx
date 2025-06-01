@@ -12,7 +12,11 @@ interface Particle {
   pulseDirection: number;
 }
 
-const ParticleBackground = () => {
+interface ParticleBackgroundProps {
+  variant?: 'default' | 'learning';
+}
+
+const ParticleBackground = ({ variant = 'default' }: ParticleBackgroundProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   useEffect(() => {
@@ -28,14 +32,16 @@ const ParticleBackground = () => {
     const mouseRadius = 150;
     let isMouseMoving = false;
     let mouseTimer: NodeJS.Timeout;
+    // Speed adjustment for learning workspace
+    const speedFactor = variant === 'learning' ? 0.18 : 0.4;
     
     // Create particles with additional properties
     const particles: Particle[] = Array.from({ length: particleCount }, () => ({
       x: Math.random() * window.innerWidth,
       y: Math.random() * window.innerHeight,
       r: Math.random() * 2 + 1,
-      dx: (Math.random() - 0.5) * 0.4,
-      dy: (Math.random() - 0.5) * 0.4,
+      dx: (Math.random() - 0.5) * speedFactor,
+      dy: (Math.random() - 0.5) * speedFactor,
       color: `hsla(${260 + Math.random() * 60}, 80%, 70%, 0.2)`,
       alpha: 0.2 + Math.random() * 0.3,
       pulse: 0,
@@ -119,6 +125,16 @@ const ParticleBackground = () => {
       
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
+      // Add a subtle blur behind the stars for learning workspace
+      if (variant === 'learning') {
+        ctx.save();
+        ctx.globalAlpha = 0.7;
+        ctx.filter = 'blur(2.5px)';
+        ctx.fillStyle = 'rgba(30, 20, 60, 0.18)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+      }
+      
       // Update and draw particles
       particles.forEach((p, index) => {
         // Update position
@@ -176,7 +192,7 @@ const ParticleBackground = () => {
       clearTimeout(mouseTimer);
       cancelAnimationFrame(animationId);
     };
-  }, []);
+  }, [variant]);
   
   return (
     <canvas 
