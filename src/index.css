@@ -403,20 +403,31 @@
 }
 
 .custom-canvas-scroll::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
   background: transparent;
+  opacity: 0;
 }
 .custom-canvas-scroll::-webkit-scrollbar-thumb {
-  background: #7E69AB;
-  border-radius: 6px;
+  background: linear-gradient(135deg, #a78bfa 0%, #6366f1 100%);
+  border-radius: 8px;
+  min-height: 40px;
+  opacity: 0;
+  transition: opacity 0.2s, background 0.2s;
+}
+.custom-canvas-scroll:hover::-webkit-scrollbar-thumb,
+.custom-canvas-scroll:active::-webkit-scrollbar-thumb,
+.custom-canvas-scroll:focus::-webkit-scrollbar-thumb {
+  opacity: 1;
 }
 .custom-canvas-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
 .custom-canvas-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #7E69AB transparent;
+  scrollbar-color: transparent transparent;
+}
+.custom-canvas-scroll:hover, .custom-canvas-scroll:active, .custom-canvas-scroll:focus {
+  scrollbar-color: #a78bfa #181825;
 }
 
 .custom-canvas-cursor {
@@ -559,4 +570,62 @@
 
 .vibe-terminal-bg {
   background: #232334;
+}
+
+.custom-learning-markdown h1 {
+  font-size: 1.7em !important;
+  font-weight: 800 !important;
+  margin-top: 2em !important;
+  margin-bottom: 1em !important;
+  letter-spacing: -0.01em;
+}
+.custom-learning-markdown h2 {
+  font-size: 1.35em !important;
+  font-weight: 700 !important;
+  margin-top: 1.5em !important;
+  margin-bottom: 0.8em !important;
+}
+.custom-learning-markdown h3 {
+  font-size: 1.15em !important;
+  font-weight: 600 !important;
+  margin-top: 1.2em !important;
+  margin-bottom: 0.7em !important;
+}
+.custom-learning-markdown h4, .custom-learning-markdown h5, .custom-learning-markdown h6 {
+  font-size: 1.05em !important;
+  font-weight: 600 !important;
+  margin-top: 1em !important;
+  margin-bottom: 0.5em !important;
+}
+.custom-learning-markdown p {
+  font-size: 1em !important;
+  margin-top: 0.8em !important;
+  margin-bottom: 0.8em !important;
+  line-height: 1.7 !important;
+}
+.custom-learning-markdown strong {
+  font-size: 1.08em !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+  letter-spacing: 0.01em;
+}
+.custom-learning-markdown ul, .custom-learning-markdown ol {
+  margin-top: 0.8em !important;
+  margin-bottom: 0.8em !important;
+  font-size: 1em !important;
+}
+.custom-learning-markdown pre, .custom-learning-markdown code {
+  margin-top: 1em !important;
+  margin-bottom: 1em !important;
+}
+.custom-learning-markdown pre {
+  background: #f7f7fa !important;
+  color: #222 !important;
+  border-radius: 1em !important;
+  padding: 1em 1.2em !important;
+  font-size: 0.98em !important;
+  box-shadow: 0 2px 16px 0 rgba(138,43,226,0.08);
+}
+.custom-learning-markdown > * + * {
+  margin-top: 1.2em !important;
 }

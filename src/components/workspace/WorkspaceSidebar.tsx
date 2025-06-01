@@ -6,6 +6,7 @@ import {
   FlaskConical, 
   Upload, 
   Sparkles,
+  Book,
   X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export type WorkspaceType = 'ideation' | 'environment' | 'coding' | 'testing' | 'deployment';
+export type WorkspaceType = 'ideation' | 'environment' | 'learning' | 'coding' | 'testing' | 'deployment';
 
 interface WorkspaceSidebarProps {
   activeWorkspace: WorkspaceType;
@@ -48,6 +49,12 @@ export function WorkspaceSidebar({ activeWorkspace, onWorkspaceChange }: Workspa
       label: 'Environment',
       icon: Palette,
       description: 'Set up your development environment'
+    },
+    {
+      id: 'learning',
+      label: 'Learning',
+      icon: Book,
+      description: 'Learn Python step by step'
     },
     {
       id: 'coding',
