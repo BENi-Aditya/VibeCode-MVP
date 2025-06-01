@@ -1239,17 +1239,19 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
         )}
         
         {/* Input area */}
-        <ExploreExamplesBox
-          examples={[
-            'Create a Python function to check if a number is prime.',
-            'Write a basic calculator in Python using functions.',
-            'Write a Python script that renames all files in a folder to lowercase.',
-            'Generate a Python script that sends an email alert if CPU usage crosses 80%.',
-            'Create a Python script that reads a CSV and prints the sum of a column.'
-          ]}
-          onExampleClick={setInputText}
-          className="mb-2"
-        />
+        <div className="mb-1 mx-auto" style={{ marginBottom: 4, maxWidth: 800, width: '100%' }}>
+          <ExploreExamplesBox
+            examples={[
+              'Create a Python function to check if a number is prime.',
+              'Write a basic calculator in Python using functions.',
+              'Write a Python script that renames all files in a folder to lowercase.',
+              'Generate a Python script that sends an email alert if CPU usage crosses 80%.',
+              'Create a Python script that reads a CSV and prints the sum of a column.'
+            ]}
+            onExampleClick={setInputText}
+            className="py-1"
+          />
+        </div>
         <div className="flex items-end gap-3 px-4 pb-4">
           <textarea
             className="flex-1 min-h-[44px] max-h-40 resize-none rounded-xl px-4 py-3 bg-white/10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-teal-400/50 transition-all duration-200"
