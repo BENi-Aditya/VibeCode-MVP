@@ -522,3 +522,41 @@
   color: #fff;
   opacity: 1;
 }
+
+.vibe-glow-btn, .vibe-glow-btn-blue {
+  @apply px-8 py-3 rounded-full font-semibold text-base flex items-center justify-center gap-2 shadow-md border border-transparent transition-all duration-200 bg-gradient-to-br from-vibe-purple to-vibe-blue text-white;
+  box-shadow: 0 0 16px 0 rgba(155,135,245,0.18), 0 2px 8px 0 rgba(80,60,180,0.10);
+  background: linear-gradient(135deg, #a78bfa 0%, #6366f1 100%);
+  position: relative;
+  min-width: 320px;
+  min-height: 52px;
+  transition: transform 0.15s cubic-bezier(.4,0,.2,1), box-shadow 0.2s;
+  border-radius: 1rem !important;
+}
+.vibe-glow-btn:hover, .vibe-glow-btn:focus,
+.vibe-glow-btn-blue:hover, .vibe-glow-btn-blue:focus {
+  transform: scale(1.045);
+  box-shadow: 0 0 32px 0 rgba(155,135,245,0.45), 0 2px 16px 0 rgba(80,60,180,0.22);
+  filter: brightness(1.08);
+}
+.vibe-glow-btn:active {
+  filter: brightness(0.98);
+}
+.vibe-glow-btn-blue {
+  @apply px-8 py-3 rounded-full font-semibold text-base flex items-center justify-center gap-2 shadow-md border border-transparent transition-all duration-200 text-white;
+  box-shadow: 0 0 16px 0 rgba(99,102,241,0.18), 0 2px 8px 0 rgba(80,60,180,0.10);
+  background: linear-gradient(135deg, #6366f1 0%, #a78bfa 100%);
+  position: relative;
+  min-width: 320px;
+  min-height: 52px;
+}
+.vibe-glow-btn-blue:active {
+  filter: brightness(0.98);
+}
+.bg-vibe-codeblock {
+  background: linear-gradient(135deg, #2d2346 0%, #3a2d5c 100%);
+}
+
+.vibe-terminal-bg {
+  background: #232334;
+}

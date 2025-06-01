@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Mic, MicOff, X, Send, Loader, Info, ChevronDown, Trash2, Edit, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
+import rehypeHighlight from 'rehype-highlight';
 // Import custom instructions as raw text
 import customInstructions from '/prompts/Custom_instructions.txt?raw';
 import canvasPromptContent from '/prompts/canvas_prompt.txt?raw';
@@ -34,24 +35,7 @@ interface ModelOption {
   available: boolean;
 }
 
-// Utility to extract triple-quote code blocks from a string
-function extractTripleQuoteBlocks(text: string) {
-  const regex = /"""([\w./-]+)"""\s*([\s\S]*?)\s*"""/g;
-  let match;
-  const blocks = [];
-  let lastIndex = 0;
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      blocks.push({ type: 'text', content: text.slice(lastIndex, match.index) });
-    }
-    blocks.push({ type: 'code', filename: match[1], code: match[2] });
-    lastIndex = regex.lastIndex;
-  }
-  if (lastIndex < text.length) {
-    blocks.push({ type: 'text', content: text.slice(lastIndex) });
-  }
-  return blocks;
-}
+const CHAT_STORAGE_KEY = 'vibecode-ideation-chat';
 
 export function IdeationWorkspace() {
   // Chat state
@@ -101,6 +85,24 @@ export function IdeationWorkspace() {
   // Enhanced waveform visualization data
   const [waveformData, setWaveformData] = useState<number[]>(Array(50).fill(0));
   const [circleScale, setCircleScale] = useState(1);
+
+  // Load chat from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(CHAT_STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed.map(m => ({ ...m, timestamp: new Date(m.timestamp) })));
+        }
+      } catch {}
+    }
+  }, []);
+
+  // Save chat to localStorage on every update
+  useEffect(() => {
+    localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+  }, [messages]);
 
   // Scroll to bottom of chat when messages update
   useEffect(() => {
@@ -752,6 +754,7 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
     setInputText('');
     setTranscription('');
     setSetupProgress([]);
+    localStorage.removeItem(CHAT_STORAGE_KEY);
   };
   
   // Toast for notifications
@@ -882,6 +885,15 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
 
   // New state for voice mode popup
   const [showVoicePopup, setShowVoicePopup] = useState(true);
+
+  // After chat localStorage logic:
+  useEffect(() => {
+    const savedCanvas = localStorage.getItem('vibecode-ideation-canvas');
+    if (savedCanvas) setCanvasContent(savedCanvas);
+  }, []);
+  useEffect(() => {
+    localStorage.setItem('vibecode-ideation-canvas', canvasContent || '');
+  }, [canvasContent]);
 
   return (
     <div className="flex h-full w-full bg-gradient-to-br from-[#0c0915] via-[#121125] to-[#1b1a2e]">
@@ -1044,19 +1056,9 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
                     {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
-                <p className="mt-2 text-white/90">
-                  {message.sender === 'ai' ? (
-                    <React.Fragment>
-                      <ReactMarkdown components={{
-                        p: ({node, ...props}) => <span {...props} />,
-                      }}>
-                        {message.content}
-                      </ReactMarkdown>
-                    </React.Fragment>
-                  ) : (
-                    message.content
-                  )}
-                </p>
+                <div className="mt-2 text-white/90">
+                  <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{message.content}</ReactMarkdown>
+                </div>
               </div>
             </div>
           ))}
@@ -1300,39 +1302,8 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
                 </div>
               )}
               {canvasContent ? (
-                <div className="prose prose-sm prose-invert max-w-none p-3 text-white/90">
-                  {extractTripleQuoteBlocks(canvasContent).map((block, idx) => {
-                    if (block.type === 'code') {
-                      // Guess language from filename extension
-                      const ext = block.filename.split('.').pop() || '';
-                      const lang = ext === 'py' ? 'python' : ext === 'js' ? 'javascript' : ext;
-                      return (
-                        <div className="relative vibe-codeblock" key={idx}>
-                          <div className="vibe-codeblock-header flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/15 rounded-t-[0.7rem]">
-                            <span className="text-xs font-mono text-white/70">{block.filename}</span>
-                            <div className="flex gap-2">
-                              <button
-                                className="vibe-codeblock-copy"
-                                onClick={() => {navigator.clipboard.writeText(block.code)}}
-                                title="Copy"
-                                style={{zIndex: 10}}
-                              >
-                                Copy
-                              </button>
-                            </div>
-                          </div>
-                          <div className="vibe-codeblock-body" style={{maxHeight: '340px', overflow: 'auto', borderRadius: '0 0 0.7rem 0.7rem'}}>
-                            <pre className={`vibe-codeblock-pre vibe-codeblock-wrap`} tabIndex={0}>
-                              <code className={`language-${lang}`}>{block.code}</code>
-                            </pre>
-                          </div>
-                        </div>
-                      );
-                    } else {
-                      // Render normal markdown for non-code
-                      return <ReactMarkdown key={idx}>{block.content}</ReactMarkdown>;
-                    }
-                  })}
+                <div className="markdown-content w-full h-full max-w-full max-h-full overflow-auto p-3 text-white/90" style={{boxSizing: 'border-box'}}>
+                  <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{canvasContent}</ReactMarkdown>
                 </div>
               ) : (
                 !isAiThinking && <p className="text-center text-white/50 p-4">Click "Generate Canvas" to see the AI-refined breakdown of your idea here.</p>

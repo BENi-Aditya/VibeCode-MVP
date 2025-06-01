@@ -12,10 +12,11 @@ interface TerminalComponentProps {
   height?: string | number;
   wsUrl: string;
   onReady?: (handle: TerminalHandle) => void;
+  className?: string;
 }
 
 const TerminalComponent = forwardRef<TerminalHandle, TerminalComponentProps>(
-  ({ height = '100%', wsUrl, onReady }, ref) => {
+  ({ height = '100%', wsUrl, onReady, className = '' }, ref) => {
     const xtermRef = useRef<HTMLDivElement>(null);
     const termRef = useRef<Terminal | null>(null);
     const fitAddonRef = useRef<FitAddon | null>(null);
@@ -34,7 +35,7 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalComponentProps>(
         cursorBlink: true,
         fontSize: 14,
         theme: {
-          background: '#1e1e1e',
+          background: '#232334',
         },
       });
       const fitAddon = new FitAddon();
@@ -118,7 +119,8 @@ const TerminalComponent = forwardRef<TerminalHandle, TerminalComponentProps>(
     return (
       <div
         ref={xtermRef}
-        style={{ width: '100%', height, background: '#1e1e1e' }}
+        className={className}
+        style={{ width: '100%', height }}
       />
     );
   }
