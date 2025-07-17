@@ -8,7 +8,9 @@ import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 import ParticleBackground from "@/components/ParticleBackground";
 
+
 const queryClient = new QueryClient();
+
 
 const App = () => (
   <>
