@@ -1238,8 +1238,8 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
           </div>
         )}
         
-        {/* Input area */}
-        <div className="mb-1 mx-auto" style={{ marginBottom: 4, maxWidth: 800, width: '100%' }}>
+        {/* Examples button */}
+        <div className="mb-3 px-4">
           <ExploreExamplesBox
             examples={[
               'I want to create a simple matplotlib plotter',
@@ -1254,9 +1254,11 @@ console.log('API Key Loaded:', !!apiKey); // Verify key loading
               'I want to generate QR codes from text'
             ]}
             onExampleClick={setInputText}
-            className="py-1"
+            className=""
           />
         </div>
+        
+        {/* Input area */}
         <div className="flex items-end gap-3 px-4 pb-4">
           <textarea
             className="flex-1 min-h-[44px] max-h-40 resize-none rounded-xl px-4 py-3 bg-white/10 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-teal-400/50 transition-all duration-200"

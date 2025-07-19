@@ -91,7 +91,7 @@ export function WorkspaceSidebar({ activeWorkspace, onWorkspaceChange }: Workspa
 
   return (
     <>
-      <div className="h-full w-16 border-r border-white/10 bg-black/30 backdrop-blur-md flex flex-col items-center py-8">
+      <div className="h-full w-16 border-r border-white/20 bg-black/50 backdrop-blur-md flex flex-col items-center py-8 relative z-50 shadow-lg">
         <div className="mb-12 flex items-center justify-center">
           <div 
             className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-vibe-purple to-vibe-blue flex items-center justify-center shadow-lg transform hover:scale-110 transition-all duration-300"
@@ -113,8 +113,7 @@ export function WorkspaceSidebar({ activeWorkspace, onWorkspaceChange }: Workspa
                       "w-10 h-10 rounded-full flex flex-col items-center justify-center transition-all duration-300",
                       activeWorkspace === workspace.id 
                         ? "bg-gradient-to-br from-vibe-purple to-vibe-blue text-white shadow-lg shadow-vibe-purple/20" 
-                        : "text-white/50 hover:text-white hover:bg-white/10 hover:scale-110",
-                      workspace.id !== 'ideation' && "opacity-80"
+                        : "text-white/80 bg-white/5 hover:text-white hover:bg-white/15 hover:scale-110 border border-white/10"
                     )}
                     onClick={() => handleWorkspaceClick(workspace)}
                     data-interactive
@@ -128,7 +127,7 @@ export function WorkspaceSidebar({ activeWorkspace, onWorkspaceChange }: Workspa
                 >
                   <p className="font-medium text-white">{workspace.label}</p>
                   <p className="text-xs text-white/70">{workspace.description}</p>
-                  {workspace.id !== 'ideation' && workspace.id !== 'coding' && (
+                  {workspace.id !== 'ideation' && workspace.id !== 'coding' && workspace.id !== 'environment' && workspace.id !== 'learning' && (
                     <p className="text-xs text-vibe-purple mt-1">Coming soon</p>
                   )}
                 </TooltipContent>

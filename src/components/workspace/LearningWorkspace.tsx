@@ -270,7 +270,7 @@ export function LearningWorkspace() {
       <div className="absolute inset-0 z-10 flex h-full w-full">
         {/* Onboarding Panel */}
         {step === 'choose-level' && (
-          <div className={`fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-xl transition-opacity duration-400 ${overlayFade ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+          <div className={`fixed inset-y-0 left-16 right-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-xl transition-opacity duration-400 ${overlayFade ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
             <Card className="p-10 rounded-2xl shadow-2xl border border-white/10 max-w-md w-full flex flex-col items-center animate-fade-in-up glass-card" style={{ minHeight: 380 }}>
               <CardHeader className="mb-4">
                 <CardTitle className="text-3xl font-extrabold text-white text-center drop-shadow-lg tracking-tight">Let's get started!<br/>How comfortable are you with Python?</CardTitle>
@@ -322,7 +322,7 @@ export function LearningWorkspace() {
               </CardContent>
             </Card>
             {showComingSoon && (
-              <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-xl" onClick={() => setShowComingSoon(false)}>
+              <div className="fixed inset-y-0 left-16 right-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-xl" onClick={() => setShowComingSoon(false)}>
                 <Card className="p-8 rounded-2xl shadow-2xl border border-white/10 max-w-xs w-full flex flex-col items-center animate-fade-in-up glass-card" onClick={e => e.stopPropagation()}>
                   <Badge className="mb-3 bg-yellow-400/90 text-black font-bold px-3 py-1 rounded-full border-2 border-yellow-700/60 flex items-center gap-1 shadow-md" style={{ background: 'repeating-linear-gradient(135deg, #facc15 0 10px, #000 10px 20px)' }}>
                     <Wrench className="w-4 h-4 mr-1 text-black/80" />
@@ -338,7 +338,7 @@ export function LearningWorkspace() {
         )}
         {/* Topic Comfort Survey */}
         {step === 'quiz-topics' && topics[quizIndex] && (
-          <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-[2px] animate-fade-in">
+          <div className="fixed inset-y-0 left-16 right-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-[2px] animate-fade-in">
             <Card className="p-10 rounded-2xl shadow-2xl border border-white/10 max-w-lg w-full flex flex-col items-center animate-fade-in-up glass-card" style={{ minHeight: 320 }}>
               <CardHeader className="mb-2 w-full">
                 <CardTitle className="text-2xl font-bold text-white text-center drop-shadow-lg">{topics[quizIndex].label}</CardTitle>

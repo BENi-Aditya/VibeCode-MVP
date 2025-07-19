@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader, Copy, Play, FlaskConical } from 'lucide-react';
+import { Loader, Copy, Play, FlaskConical, X, Clock } from 'lucide-react';
 import TerminalComponent, { TerminalHandle } from '../../../components/Terminal';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -11,6 +11,7 @@ export function EnvironmentWorkspace() {
   const [requirements, setRequirements] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showTerminalTip, setShowTerminalTip] = useState(true);
   const terminalRef = useRef<TerminalHandle>(null);
 
   // New: Create Virtual Environment
@@ -232,6 +233,34 @@ export function EnvironmentWorkspace() {
               </div>
               <TerminalComponent ref={terminalRef} wsUrl={VITE_TERMINAL_WS_URL} height={480} className="vibe-terminal-bg rounded-b-xl" />
             </div>
+            
+            {/* Terminal Startup Tip Popup */}
+            {showTerminalTip && (
+              <div className="relative mt-3">
+                <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-400/30 rounded-xl p-4 backdrop-blur-sm shadow-lg">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-0.5">
+                      <Clock className="h-5 w-5 text-amber-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-amber-200 font-semibold text-sm mb-1">Terminal Initialization</h4>
+                      <p className="text-amber-100/90 text-sm leading-relaxed">
+                        The interactive terminal takes ~30 seconds to start initially as it sets up the containerized environment. 
+                        This only happens once per session for security and isolation.
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="flex-shrink-0 h-6 w-6 text-amber-300 hover:text-amber-100 hover:bg-amber-400/20 rounded-lg"
+                      onClick={() => setShowTerminalTip(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

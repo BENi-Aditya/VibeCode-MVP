@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { WorkspaceSidebar, WorkspaceType } from './WorkspaceSidebar';
 import { IdeationWorkspace } from './Ideation/IdeationWorkspace';
 import { EnvironmentWorkspace } from './EnvironmentWorkspace';
+import { LearningWorkspace } from './LearningWorkspace';
 import { CodingWorkspace } from './CodingWorkspace';
 import { TestingWorkspace } from './TestingWorkspace';
 import CustomCursor from '@/components/CustomCursor';
@@ -24,6 +25,8 @@ export function WorkspaceManager() {
         return <IdeationWorkspace />;
       case 'environment':
         return <EnvironmentWorkspace />;
+      case 'learning':
+        return <LearningWorkspace />;
       case 'coding':
         return <CodingWorkspace />;
       case 'testing':

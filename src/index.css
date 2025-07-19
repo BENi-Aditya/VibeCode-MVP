@@ -149,6 +149,19 @@
     animation: waveform-animation 0.5s ease-in-out infinite;
   }
 
+  /* Button Animation Utilities */
+  .bg-size-200 {
+    background-size: 200% 100%;
+  }
+  
+  .bg-pos-0 {
+    background-position: 0% 50%;
+  }
+  
+  .bg-pos-100 {
+    background-position: 100% 50%;
+  }
+
   /* Markdown Content Styling */
   .markdown-content {
     color: rgba(255, 255, 255, 0.9);
