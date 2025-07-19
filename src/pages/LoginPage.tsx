@@ -58,7 +58,7 @@ const LoginPage = () => {
       <CustomCursor />
       <div className="relative flex items-center justify-center h-screen w-screen z-10">
       <div className="bg-black/60 backdrop-blur-sm p-8 rounded-xl shadow-2xl w-full max-w-md border border-white/10">
-        <div className="flex flex-col items-center space-y-6">
+        <div className="flex flex-col items-center w-full space-y-6">
           <img src="/logo.png" alt="VibeCode Logo" className="h-16" />
           <h1 className="text-3xl font-bold text-white">Welcome to VibeCode</h1>
 
@@ -66,7 +66,7 @@ const LoginPage = () => {
             placeholder="Enter your name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="text-white placeholder:text-gray-400"
+            className="text-white placeholder:text-gray-400 w-full"
           />
 
           <Button className="w-full" onClick={handleLogin} disabled={!name.trim()}>
@@ -79,27 +79,34 @@ const LoginPage = () => {
             <div className="flex-1 h-px bg-white/20" />
           </div>
 
-          <GoogleLoginButton onSuccess={handleGoogleSuccess} />
-
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <button className="text-sm text-gray-300 hover:underline">
-                Continue without login
-              </button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Proceed without saving history?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  If you continue without logging in your conversation history will not be saved.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={skipLogin}>Continue</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <div className="w-full flex flex-col items-center">
+            <div className="w-full flex justify-center">
+              <div className="w-full max-w-xs">
+                <GoogleLoginButton onSuccess={handleGoogleSuccess} />
+              </div>
+            </div>
+            <div className="w-full flex justify-center mt-4">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button className="text-sm text-gray-300 hover:underline w-full text-center">
+                    Continue without login
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Proceed without saving history?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      If you continue without logging in your conversation history will not be saved.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={skipLogin}>Continue</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
         </div>
       </div>
     </div>
