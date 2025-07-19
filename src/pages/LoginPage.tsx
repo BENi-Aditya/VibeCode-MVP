@@ -35,10 +35,13 @@ const LoginPage = () => {
 
   const handleGoogleSuccess = async (credential: any) => {
     try {
+      // Accept both string and object with .credential
+      const idToken = typeof credential === 'string' ? credential : credential.credential;
+      if (!idToken) throw new Error('No Google credential received');
       const res = await fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken: credential.credential })
+        body: JSON.stringify({ idToken })
       });
       const data = await res.json();
       if (data.success) {
@@ -47,10 +50,11 @@ const LoginPage = () => {
       } else {
         alert('Google login failed: ' + (data.error || 'Unknown error'));
       }
-    } catch (err) {
+    } catch (err: any) {
       alert('Google login error: ' + (err.message || err));
     }
   };
+
 
 
   return (
