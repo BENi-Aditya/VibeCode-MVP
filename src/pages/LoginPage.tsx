@@ -33,11 +33,25 @@ const LoginPage = () => {
     navigate("/ideation");
   };
 
-  const handleGoogleSuccess = (credential: any) => {
-    // Save Google credential to localStorage (or send to backend for validation)
-    localStorage.setItem("googleCredential", JSON.stringify(credential));
-    navigate("/ideation");
+  const handleGoogleSuccess = async (credential: any) => {
+    try {
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken: credential.credential })
+      });
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+        navigate("/ideation");
+      } else {
+        alert('Google login failed: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Google login error: ' + (err.message || err));
+    }
   };
+
 
   return (
     <>

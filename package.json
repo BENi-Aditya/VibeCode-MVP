@@ -59,6 +59,7 @@
     "dotenv": "^16.4.5",
     "embla-carousel-react": "^8.3.0",
     "express": "^4.19.2",
+    "google-auth-library": "^10.1.0",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.462.0",
     "monaco-editor": "^0.52.2",
